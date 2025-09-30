@@ -14,27 +14,49 @@ Authentication: JWT tokens
 Real-time: WebSocket (Socket.IO)
 
 Project Structure
+
 clash-royale-clone/
+
 ├── frontend/               # React client application
+
 │   ├── src/
+
 │   │   ├── components/    # React components
+
 │   │   ├── scenes/        # Three.js game scenes
+
 │   │   ├── services/      # API and socket services
+
 │   │   ├── store/         # State management
+
 │   │   └── utils/         # Utility functions
+
 │   └── package.json
+
 ├── backend/                # Node.js server
+
 │   ├── src/
+
 │   │   ├── controllers/   # Route controllers
+
 │   │   ├── models/        # Database models
+
 │   │   ├── services/      # Business logic
+
 │   │   ├── sockets/       # Socket.IO handlers
+
 │   │   └── middleware/    # Express middleware
+
 │   └── package.json
+
 └── shared/                 # Shared game logic
+
     ├── constants/          # Game constants
+    
     ├── cards/             # Card definitions
+    
     └── mechanics/         # Game mechanics
+    
 Installation & Setup
 Prerequisites
 
