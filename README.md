@@ -2,7 +2,7 @@
 Real-time PVP strategy game.
 
 
-Clash Royale Clone - Web Multiplayer Game
+WrightRoyale - Web Multiplayer Game
 Project Overview
 A web-based multiplayer battle arena game inspired by Clash Royale, featuring real-time PvP battles, card collection, and progression systems.
 Tech Stack
