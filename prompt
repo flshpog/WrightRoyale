@@ -1,0 +1,40 @@
+You are to generate the codebase for a web-based multiplayer game inspired by Clash Royale. Follow these detailed requirements carefully:
+Core Features
+1. Multiplayer Battles
+   * Implement online multiplayer across two separate computers.
+   * One player should be able to host a battle (create a lobby), and another should be able to join via a code or room ID.
+   * Use WebSockets (e.g., Socket.IO) to synchronize game state between players in real time.
+2. Cards & Gameplay
+   * Include all Clash Royale cards with their unique stats, elixir costs, and behaviors.
+   * Implement mechanics for elixir regeneration, card deployment, and troop/pathfinding logic.
+   * Cards must be limited to a hand of 4, with a deck of 8 chosen beforehand.
+   * Add basic AI behaviors for troops (target nearest enemy/tower, follow lane paths, attack if in range).
+3. UI & Visuals
+   * Main menu with options: Battle, Deck Builder, Profile/Stats.
+   * Deck Builder: allow users to pick up to 8 cards per deck. Display average elixir cost.
+   * Battle UI: similar layout to Clash Royale (lanes, bridges, towers, king tower).
+   * Use 3D or pseudo-3D sprites for troops, spells, and towers to make the game visually appealing.
+   * Display elixir bar and card hand at bottom of battle screen.
+4. Progression System
+   * Cards can be leveled up from level 1 → 11.
+   * Each level increases stats (HP, damage, etc.).
+   * Include a simple progression model (XP or gold earned from battles).
+5. User Data
+   * Implement user accounts (simple login with username/password or guest profile).
+   * Save user data (deck, card levels, win/loss record) in a backend database (e.g., MongoDB, Firebase, or SQLite for simplicity).
+   * Ensure data persists across sessions.
+Technical Requirements
+* Frontend: Use React (with TailwindCSS for styling). Three.js or Babylon.js can be used for rendering simple 3D sprites.
+* Backend: Use Node.js + Express for the server.
+* Real-time Multiplayer: Use WebSockets (Socket.IO recommended).
+* Database: Use MongoDB (or SQLite for quick setup) to store player accounts, decks, and progression.
+* Project Structure:
+   * /frontend → React client
+   * /backend → Node.js/Express + WebSocket server
+   * /shared → shared game logic/models between client & server
+Additional Notes
+* Generate the project scaffolding with clear separation of concerns (frontend, backend, shared).
+* Include example code for 2–3 troop cards, a spell, and a building. Show how other cards can be added by following this pattern.
+* Provide comments throughout the code so developers can expand the system.
+* Ensure multiplayer synchronization is deterministic (avoid desync by letting the server be the source of truth).
+* Provide instructions in a README for setup and running both server and client locally.
