@@ -1,14 +1,14 @@
 // Core game logic engine
-const { ELIXIR, MATCH_DURATION, GAME_STATE } = require('../../shared/constants');
-const { generateEntityId, isValidDeployPosition, calculateTowerStats } = require('../../shared/gameUtils');
-const CARDS = require('../../shared/cards/cardData');
+const { ELIXIR, MATCH_DURATION, GAME_STATE } = require('../../../shared/constants');
+const { generateEntityId, isValidDeployPosition, calculateTowerStats } = require('../../../shared/gameUtils');
+const CARDS = require('../../../shared/cards/cardData');
 
 // Import card classes
-const Knight = require('../../shared/cards/troops/Knight');
-const { createArchers } = require('../../shared/cards/troops/Archers');
-const Giant = require('../../shared/cards/troops/Giant');
-const Fireball = require('../../shared/cards/spells/Fireball');
-const Cannon = require('../../shared/cards/buildings/Cannon');
+const Knight = require('../../../shared/cards/troops/Knight');
+const { createArchers } = require('../../../shared/cards/troops/Archers');
+const Giant = require('../../../shared/cards/troops/Giant');
+const Fireball = require('../../../shared/cards/spells/Fireball');
+const Cannon = require('../../../shared/cards/buildings/Cannon');
 
 class GameEngine {
   constructor(room) {
