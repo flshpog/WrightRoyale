@@ -3,9 +3,232 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wright Royale</title>
+    <title>Wright Games</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .side {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: flex 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            position: relative;
+        }
+
+        .side.active {
+            flex: 1.5;
+        }
+
+        .side.inactive {
+            flex: 0.5;
+        }
+
+        .side-left {
+            background-color: #f4c430;
+        }
+
+        .side-left.active {
+            background-color: #ffd700;
+        }
+
+        .side-left.inactive {
+            background-color: #e6d788;
+        }
+
+        .side-right {
+            background-color: #4169e1;
+        }
+
+        .side-right.active {
+            background-color: #5a7dff;
+        }
+
+        .side-right.inactive {
+            background-color: #7a8db8;
+        }
+
+        .card {
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+            transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            transform: scale(1);
+        }
+
+        .card.scaled {
+            transform: scale(1.1);
+        }
+
+        .card-left {
+            background-color: #d4a824;
+            transition: background-color 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .card-left.active {
+            background-color: #f4c430;
+        }
+
+        .card-left.inactive {
+            background-color: #d9c670;
+        }
+
+        .card-right {
+            background-color: #3454b8;
+            transition: background-color 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .card-right.active {
+            background-color: #4169e1;
+        }
+
+        .card-right.inactive {
+            background-color: #5c73a8;
+        }
+
+        .logo-container {
+            width: 200px;
+            height: 200px;
+            background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px dashed #ccc;
+            position: relative;
+        }
+
+        .logo-placeholder {
+            font-size: 14px;
+            color: #999;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .logo-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .play-button {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white;
+            border: none;
+            padding: 18px 60px;
+            font-size: 24px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .play-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.6);
+        }
+
+        .play-button:active {
+            transform: translateY(-1px);
+        }
+    </style>
 </head>
 <body>
-    Wright Royale
+    <div class="side side-left" id="leftSide">
+        <div class="card card-left" id="leftCard">
+            <div class="logo-container">
+                <img src="WrightRoyale.png" alt="Wright Royale" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <div class="logo-placeholder" style="display: none;">
+                    <strong>Wright Royale</strong><br>
+                    Logo Placeholder<br>
+                    (WrightRoyale.png)
+                </div>
+            </div>
+            <button class="play-button" onclick="playGame('Wright Royale')">Play</button>
+        </div>
+    </div>
+
+    <div class="side side-right" id="rightSide">
+        <div class="card card-right" id="rightCard">
+            <div class="logo-container">
+                <img src="WrightTD.png" alt="Wright Tower Defense" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <div class="logo-placeholder" style="display: none;">
+                    <strong>Wright TD</strong><br>
+                    Logo Placeholder<br>
+                    (WrightTD.png)
+                </div>
+            </div>
+            <button class="play-button" onclick="playGame('Wright Tower Defense')">Play</button>
+        </div>
+    </div>
+
+    <script>
+        const leftSide = document.getElementById('leftSide');
+        const rightSide = document.getElementById('rightSide');
+        const leftCard = document.getElementById('leftCard');
+        const rightCard = document.getElementById('rightCard');
+
+        let currentSide = null;
+
+        document.addEventListener('mousemove', (e) => {
+            const screenWidth = window.innerWidth;
+            const mouseX = e.clientX;
+
+            if (mouseX < screenWidth / 2) {
+                // Left side
+                if (currentSide !== 'left') {
+                    leftSide.classList.add('active');
+                    leftSide.classList.remove('inactive');
+                    leftCard.classList.add('active');
+                    leftCard.classList.remove('inactive');
+                    leftCard.classList.add('scaled');
+                    rightSide.classList.remove('active');
+                    rightSide.classList.add('inactive');
+                    rightCard.classList.remove('active');
+                    rightCard.classList.add('inactive');
+                    rightCard.classList.remove('scaled');
+                    currentSide = 'left';
+                }
+            } else {
+                // Right side
+                if (currentSide !== 'right') {
+                    rightSide.classList.add('active');
+                    rightSide.classList.remove('inactive');
+                    rightCard.classList.add('active');
+                    rightCard.classList.remove('inactive');
+                    rightCard.classList.add('scaled');
+                    leftSide.classList.remove('active');
+                    leftSide.classList.add('inactive');
+                    leftCard.classList.remove('active');
+                    leftCard.classList.add('inactive');
+                    leftCard.classList.remove('scaled');
+                    currentSide = 'right';
+                }
+            }
+        });
+
+        function playGame(gameName) {
+            alert(`Launching ${gameName}!`);
+            // Add your game launch logic here
+        }
+    </script>
 </body>
 </html>
