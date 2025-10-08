@@ -1,14 +1,14 @@
 // Core game logic engine
-const { ELIXIR, MATCH_DURATION, GAME_STATE } = require('../../../shared/constants');
-const { generateEntityId, isValidDeployPosition, calculateTowerStats } = require('../../../shared/gameUtils');
-const CARDS = require('../../../shared/cards/cardData');
+const { ELIXIR, MATCH_DURATION, GAME_STATE } = require('../../shared/constants');
+const { generateEntityId, isValidDeployPosition, calculateTowerStats } = require('../../shared/gameUtils');
+const CARDS = require('../../shared/cards/cardData');
 
 // Import card classes
-const Knight = require('../../../shared/cards/troops/Knight');
-const { createArchers } = require('../../../shared/cards/troops/Archers');
-const Giant = require('../../../shared/cards/troops/Giant');
-const Fireball = require('../../../shared/cards/spells/Fireball');
-const Cannon = require('../../../shared/cards/buildings/Cannon');
+const Knight = require('../../shared/cards/troops/Knight');
+const { createArchers } = require('../../shared/cards/troops/Archers');
+const Giant = require('../../shared/cards/troops/Giant');
+const Fireball = require('../../shared/cards/spells/Fireball');
+const Cannon = require('../../shared/cards/buildings/Cannon');
 
 class GameEngine {
   constructor(room) {
@@ -199,10 +199,202 @@ class GameEngine {
     return nearest;
   }
 
-// WIP 
+ WIP 
 
 
- //* getDistance(pos1, pos2) {
-//    const dx = pos2.x - pos1.x;
-//    const dy = pos2.y - pos1.y;
- //   return Math.sqrt(dx * dx + dy *
+getDistance(pos1, pos2) {
+   const dx = pos2.x - pos1.x;
+    const dy = pos2.y - pos1.y;
+   return Math.sqrt(dx * dx + dy *dy);
+  }
+
+  cleanup() {
+    // Remove dead troops
+    this.state.troops = this.state.troops.filter(t => t.hp > 0 && t.state !== 'dead');
+    
+    // Remove destroyed/expired buildings
+    this.state.buildings = this.state.buildings.filter(b => 
+      b.hp > 0 && b.state !== 'destroyed' && b.state !== 'expired'
+    );
+    
+    // Remove completed spells
+    this.state.spells = this.state.spells.filter(s => s.state !== 'complete');
+  }
+
+  checkWinCondition() {
+    // Check if match time is up
+    if (this.state.elapsedTime >= MATCH_DURATION) {
+      this.state.status = GAME_STATE.OVERTIME;
+      
+      // In overtime, first tower destroyed wins
+      // Or if overtime duration is reached, higher tower HP wins
+      if (this.state.elapsedTime >= MATCH_DURATION + 180000) {
+        this.endGame();
+      }
+    }
+
+    // Check if king tower is destroyed
+    for (const playerId in this.state.towers) {
+      const kingTower = this.state.towers[playerId].find(t => t.type === 'king');
+      if (kingTower && kingTower.hp <= 0) {
+        this.state.status = GAME_STATE.FINISHED;
+        this.state.winner = playerId === '1' ? 2 : 1;
+      }
+    }
+  }
+
+  endGame() {
+    this.state.status = GAME_STATE.FINISHED;
+    
+    // Calculate total tower HP for each player
+    const player1HP = this.state.towers[1].reduce((sum, t) => sum + t.hp, 0);
+    const player2HP = this.state.towers[2].reduce((sum, t) => sum + t.hp, 0);
+    
+    if (player1HP > player2HP) {
+      this.state.winner = 1;
+    } else if (player2HP > player1HP) {
+      this.state.winner = 2;
+    } else {
+      this.state.winner = 0; // Draw
+    }
+  }
+
+  deployCard(playerNumber, cardId, position, level) {
+    const player = this.state.players[playerNumber];
+    
+    // Validate player has card in hand
+    const cardIndex = player.hand.findIndex(c => c === cardId);
+    if (cardIndex === -1) {
+      return { success: false, error: 'Card not in hand' };
+    }
+
+    // Get card data
+    const cardData = CARDS[cardId];
+    if (!cardData) {
+      return { success: false, error: 'Invalid card' };
+    }
+
+    // Check elixir
+    if (player.elixir < cardData.elixir) {
+      return { success: false, error: 'Not enough elixir' };
+    }
+
+    // Validate position
+    if (!isValidDeployPosition(position, playerNumber - 1)) {
+      return { success: false, error: 'Invalid deploy position' };
+    }
+
+    // Deduct elixir
+    player.elixir -= cardData.elixir;
+
+    // Deploy card based on type
+    const entityId = generateEntityId();
+    
+    switch (cardData.type) {
+      case 'troop':
+        this.deployTroop(cardId, entityId, level, position, playerNumber);
+        break;
+      case 'spell':
+        this.castSpell(cardId, entityId, level, position, playerNumber);
+        break;
+      case 'building':
+        this.placeBuilding(cardId, entityId, level, position, playerNumber);
+        break;
+    }
+
+    // Replace card in hand with next card from deck
+    player.hand[cardIndex] = player.deck[player.nextCardIndex % player.deck.length];
+    player.nextCardIndex++;
+
+    return { success: true };
+  }
+
+  deployTroop(cardId, entityId, level, position, playerNumber) {
+    let troops = [];
+
+    switch (cardId) {
+      case 'knight':
+        troops = [new Knight(entityId, level, position, playerNumber)];
+        break;
+      case 'archers':
+        troops = createArchers(entityId, level, position, playerNumber);
+        break;
+      case 'giant':
+        troops = [new Giant(entityId, level, position, playerNumber)];
+        break;
+      // Add more troop types here
+      default:
+        console.warn(`Troop type ${cardId} not implemented, using Knight as placeholder`);
+        troops = [new Knight(entityId, level, position, playerNumber)];
+    }
+
+    troops.forEach(troop => {
+      troop.deployed = true;
+      this.state.troops.push(troop);
+    });
+  }
+
+  castSpell(cardId, entityId, level, position, playerNumber) {
+    let spell;
+
+    switch (cardId) {
+      case 'fireball':
+        spell = new Fireball(entityId, level, position, playerNumber);
+        break;
+      // Add more spell types here
+      default:
+        console.warn(`Spell type ${cardId} not implemented`);
+        spell = new Fireball(entityId, level, position, playerNumber);
+    }
+
+    this.state.spells.push(spell);
+  }
+
+  placeBuilding(cardId, entityId, level, position, playerNumber) {
+    let building;
+
+    switch (cardId) {
+      case 'cannon':
+        building = new Cannon(entityId, level, position, playerNumber);
+        break;
+      // Add more building types here
+      default:
+        console.warn(`Building type ${cardId} not implemented`);
+        building = new Cannon(entityId, level, position, playerNumber);
+    }
+
+    building.deployed = true;
+    this.state.buildings.push(building);
+  }
+
+  getState() {
+    return {
+      ...this.state,
+      // Serialize entities for network transmission
+      troops: this.state.troops.map(t => t.serialize()),
+      buildings: this.state.buildings.map(b => b.serialize()),
+      spells: this.state.spells.map(s => s.serialize()),
+    };
+  }
+
+  isFinished() {
+    return this.state.status === GAME_STATE.FINISHED;
+  }
+
+  getResult() {
+    return {
+      winner: this.state.winner,
+      player1: {
+        username: this.state.players[1].username,
+        towersDestroyed: this.state.towers[2].filter(t => t.hp <= 0).length,
+      },
+      player2: {
+        username: this.state.players[2].username,
+        towersDestroyed: this.state.towers[1].filter(t => t.hp <= 0).length,
+      },
+      duration: this.state.elapsedTime,
+    };
+  }
+}
+
+module.exports = { GameEngine };
