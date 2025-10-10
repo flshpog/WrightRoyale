@@ -1,0 +1,383 @@
+/* Retro Pixel Art Theme for Wright Games */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Press Start 2P', cursive;
+    background: linear-gradient(135deg, #2d3561 0%, #1a1f3a 100%);
+    color: #f0f0f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+}
+
+.game-container {
+    max-width: 1200px;
+    width: 100%;
+}
+
+.header {
+    background: #2a2d4a;
+    border: 4px solid #4a4e6e;
+    padding: 15px 20px;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 0 #1a1d3a;
+}
+
+.header h1 {
+    font-size: 24px;
+    color: #ffd700;
+    text-align: center;
+    margin-bottom: 10px;
+    text-shadow: 3px 3px 0 #8b6914;
+}
+
+.game-info {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.info-item {
+    display: flex;
+    gap: 10px;
+    font-size: 12px;
+}
+
+.info-item .label {
+    color: #95e1d3;
+}
+
+.info-item .value {
+    color: #ffffff;
+    font-weight: bold;
+}
+
+.game-wrapper {
+    display: flex;
+    gap: 15px;
+}
+
+#gameCanvas {
+    border: 4px solid #4a4e6e;
+    background: #3d5a45;
+    box-shadow: 0 4px 0 #1a1d3a;
+    cursor: crosshair;
+}
+
+.side-panel {
+    background: #2a2d4a;
+    border: 4px solid #4a4e6e;
+    padding: 15px;
+    width: 300px;
+    box-shadow: 0 4px 0 #1a1d3a;
+    max-height: 608px;
+    overflow-y: auto;
+}
+
+.controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.btn {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 10px;
+    padding: 12px 20px;
+    border: 3px solid;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.1s;
+    background: none;
+    position: relative;
+}
+
+.btn:hover {
+    transform: translate(-2px, -2px);
+}
+
+.btn:active {
+    transform: translate(0, 0);
+}
+
+.btn-primary {
+    background: #4ecdc4;
+    border-color: #2d7d77;
+    color: #1a1f3a;
+}
+
+.btn-primary:hover {
+    background: #6ee7de;
+    box-shadow: 2px 2px 0 #2d7d77;
+}
+
+.btn-secondary {
+    background: #95e1d3;
+    border-color: #5a9989;
+    color: #1a1f3a;
+}
+
+.btn-secondary:hover {
+    background: #b0f0e3;
+    box-shadow: 2px 2px 0 #5a9989;
+}
+
+.btn-danger {
+    background: #ff6b6b;
+    border-color: #c92a2a;
+    color: #ffffff;
+}
+
+.btn-danger:hover {
+    background: #ff8787;
+    box-shadow: 2px 2px 0 #c92a2a;
+}
+
+.tower-shop h2,
+.tower-details h3 {
+    font-size: 14px;
+    color: #ffd700;
+    margin-bottom: 15px;
+    text-shadow: 2px 2px 0 #8b6914;
+}
+
+.tower-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.tower-card {
+    background: #1a1d3a;
+    border: 3px solid #4a4e6e;
+    padding: 10px;
+    cursor: pointer;
+    display: flex;
+    gap: 10px;
+    transition: all 0.1s;
+}
+
+.tower-card:hover {
+    border-color: #6ee7de;
+    transform: translate(-2px, -2px);
+    box-shadow: 2px 2px 0 #4a4e6e;
+}
+
+.tower-card.selected {
+    border-color: #ffd700;
+    background: #252842;
+}
+
+.tower-icon {
+    width: 40px;
+    height: 40px;
+    border: 2px solid #4a4e6e;
+    flex-shrink: 0;
+}
+
+.tower-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.tower-name {
+    font-size: 10px;
+    color: #ffffff;
+}
+
+.tower-desc {
+    font-size: 7px;
+    color: #95e1d3;
+    line-height: 1.4;
+}
+
+.tower-cost {
+    font-size: 9px;
+    color: #ffd700;
+}
+
+.tower-details {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 3px solid #4a4e6e;
+}
+
+.tower-details.hidden {
+    display: none;
+}
+
+.tower-stats {
+    background: #1a1d3a;
+    border: 2px solid #4a4e6e;
+    padding: 10px;
+    margin-bottom: 15px;
+    font-size: 8px;
+    line-height: 1.8;
+}
+
+.upgrade-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.upgrade-path {
+    background: #1a1d3a;
+    border: 2px solid #4a4e6e;
+    padding: 8px;
+}
+
+.upgrade-path-header {
+    font-size: 8px;
+    color: #ffd700;
+    margin-bottom: 5px;
+}
+
+.upgrade-tier {
+    display: flex;
+    gap: 3px;
+    margin-bottom: 8px;
+}
+
+.tier-dot {
+    width: 12px;
+    height: 12px;
+    border: 2px solid #4a4e6e;
+    background: #2a2d4a;
+}
+
+.tier-dot.unlocked {
+    background: #4ecdc4;
+    border-color: #2d7d77;
+}
+
+.tier-dot.locked {
+    background: #6c6f8e;
+}
+
+.upgrade-btn {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 7px;
+    padding: 8px 12px;
+    border: 2px solid #5a9989;
+    background: #95e1d3;
+    color: #1a1f3a;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 5px;
+}
+
+.upgrade-btn:hover {
+    background: #b0f0e3;
+}
+
+.upgrade-btn:disabled {
+    background: #4a4e6e;
+    border-color: #2a2d4a;
+    color: #6c6f8e;
+    cursor: not-allowed;
+}
+
+.tooltip {
+    position: fixed;
+    background: #1a1d3a;
+    border: 3px solid #4ecdc4;
+    padding: 10px;
+    font-size: 8px;
+    line-height: 1.6;
+    pointer-events: none;
+    z-index: 1000;
+    max-width: 250px;
+    box-shadow: 0 4px 0 #0a0d1a;
+}
+
+.tooltip.hidden {
+    display: none;
+}
+
+.tooltip-title {
+    color: #ffd700;
+    margin-bottom: 5px;
+    font-size: 9px;
+}
+
+.tooltip-stat {
+    color: #95e1d3;
+    margin: 3px 0;
+}
+
+.game-over {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #1a1d3a;
+    border: 4px solid #ff6b6b;
+    padding: 40px;
+    text-align: center;
+    z-index: 2000;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.8);
+}
+
+.game-over.hidden {
+    display: none;
+}
+
+.game-over h2 {
+    font-size: 24px;
+    color: #ff6b6b;
+    margin-bottom: 20px;
+    text-shadow: 3px 3px 0 #c92a2a;
+}
+
+.game-over p {
+    font-size: 12px;
+    color: #95e1d3;
+    margin-bottom: 30px;
+}
+
+/* Scrollbar styling */
+.side-panel::-webkit-scrollbar {
+    width: 8px;
+}
+
+.side-panel::-webkit-scrollbar-track {
+    background: #1a1d3a;
+}
+
+.side-panel::-webkit-scrollbar-thumb {
+    background: #4a4e6e;
+    border: 2px solid #2a2d4a;
+}
+
+.side-panel::-webkit-scrollbar-thumb:hover {
+    background: #6c6f8e;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1150px) {
+    .game-wrapper {
+        flex-direction: column;
+    }
+
+    .side-panel {
+        width: 100%;
+        max-height: none;
+    }
+}

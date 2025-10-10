@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Defense - Wright Games</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>PIXEL DEFENSE</h1>
+            <div class="game-info">
+                <div class="info-item">
+                    <span class="label">MONEY:</span>
+                    <span id="money" class="value">500</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">LIVES:</span>
+                    <span id="lives" class="value">100</span>
+                </div>
+                <div class="info-item">
+                    <span class="label">WAVE:</span>
+                    <span id="wave" class="value">1</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-wrapper">
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+            <div class="side-panel">
+                <div class="controls">
+                    <button id="startWave" class="btn btn-primary">START WAVE</button>
+                    <button id="pauseGame" class="btn btn-secondary">PAUSE</button>
+                </div>
+
+                <div class="tower-shop">
+                    <h2>TOWERS</h2>
+                    <div class="tower-list">
+                        <div class="tower-card" data-tower="bitblaster">
+                            <div class="tower-icon" style="background-color: #ff6b6b;"></div>
+                            <div class="tower-info">
+                                <div class="tower-name">Bit Blaster</div>
+                                <div class="tower-desc">Fast single-target shooter</div>
+                                <div class="tower-cost">$150</div>
+                            </div>
+                        </div>
+
+                        <div class="tower-card" data-tower="dataturret">
+                            <div class="tower-icon" style="background-color: #4ecdc4;"></div>
+                            <div class="tower-info">
+                                <div class="tower-name">Data Turret</div>
+                                <div class="tower-desc">Area damage cannon</div>
+                                <div class="tower-cost">$250</div>
+                            </div>
+                        </div>
+
+                        <div class="tower-card" data-tower="pixelsprout">
+                            <div class="tower-icon" style="background-color: #95e1d3;"></div>
+                            <div class="tower-info">
+                                <div class="tower-name">Pixel Sprout</div>
+                                <div class="tower-desc">Slows enemies down</div>
+                                <div class="tower-cost">$200</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="towerDetails" class="tower-details hidden">
+                    <h3 id="selectedTowerName">Tower Name</h3>
+                    <div id="towerStats" class="tower-stats"></div>
+                    <div id="upgradeOptions" class="upgrade-options"></div>
+                    <button id="sellTower" class="btn btn-danger">SELL</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="tooltip" class="tooltip hidden"></div>
+        <div id="gameOver" class="game-over hidden">
+            <h2>GAME OVER</h2>
+            <p>You survived <span id="finalWave"></span> waves!</p>
+            <button id="restartGame" class="btn btn-primary">RESTART</button>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
