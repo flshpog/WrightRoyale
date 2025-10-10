@@ -447,6 +447,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 80px 20px 180px 20px;
 }
 
 #gameCanvas {
@@ -454,6 +455,8 @@ body {
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
     max-width: 100%;
     max-height: 100%;
+    width: 640px;
+    height: 960px;
 }
 
 .game-ui {
@@ -511,7 +514,7 @@ body {
 }
 
 .card-hand {
-    position: absolute;
+    position: fixed;
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
@@ -519,6 +522,7 @@ body {
     border: 3px solid #4a4e6e;
     padding: 15px;
     box-shadow: 0 -4px 0 rgba(26, 29, 58, 0.95);
+    z-index: 100;
 }
 
 .elixir-bar {
@@ -557,6 +561,58 @@ body {
 .hand-cards {
     display: flex;
     gap: 10px;
+}
+
+.hand-card {
+    width: 80px;
+    background: #1a1d3a;
+    border: 3px solid #4ecdc4;
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.hand-card:hover {
+    transform: translateY(-5px);
+    border-color: #6ee7de;
+}
+
+.hand-card.selected {
+    border-color: #ffd700;
+    transform: translateY(-8px);
+}
+
+.hand-card.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: #4a4e6e;
+}
+
+.hand-card.disabled:hover {
+    transform: none;
+}
+
+.card-preview {
+    width: 100%;
+    height: 80px;
+    border: 2px solid #4a4e6e;
+    margin-bottom: 5px;
+}
+
+.card-name {
+    font-size: 7px;
+    color: #ffffff;
+    text-align: center;
+    margin-bottom: 5px;
+    line-height: 1.2;
+}
+
+.card-cost {
+    font-size: 12px;
+    color: #d946ef;
+    text-align: center;
+    font-weight: bold;
 }
 
 .exit-btn {

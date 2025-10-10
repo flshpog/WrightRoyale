@@ -1,9 +1,9 @@
-// ===== WRIGHT ROYALE GAME ENGINE =====
+// ===== WRIGHT ROYALE GAME ENGINE (UPDATED) =====
 
 // ===== CONFIGURATION =====
 const CONFIG = {
     gridWidth: 16,
-    gridHeight: 32,
+    gridHeight: 24,
     tileSize: 40,
     elixirMax: 10,
     elixirStart: 7,
@@ -26,8 +26,8 @@ const PlayerData = {
     gems: 50,
     level: 1,
     trophies: 0,
-    deck: [], // Will hold 8 card IDs
-    collection: [] // Will hold all unlocked cards
+    deck: ['knight', 'archers', 'minions', 'arrows', 'fireball', 'giant', 'miniokran', 'musketeer'], // Default deck with all 8 cards
+    collection: ['knight', 'archers', 'minions', 'arrows', 'fireball', 'giant', 'miniokran', 'musketeer']
 };
 
 // ===== MAIN GAME CLASS =====
@@ -49,23 +49,99 @@ class WrightRoyale {
         this.matchTime = CONFIG.matchDuration;
         this.matchStartTime = 0;
 
-        // Towers
+        // Map zones and bridges
+        this.setupMapZones();
+
+        // Towers (grid coordinates with hitboxes)
+        // Player towers (bottom)
+        const playerKingBottom = 18; // 1 tile up from the 4 center playable tiles
+        const playerKingCenter = CONFIG.gridWidth / 2; // 8
+
         this.playerTowers = {
-            left: { x: 4, y: 28, health: 100, maxHealth: 100, active: true },
-            right: { x: 11, y: 28, health: 100, maxHealth: 100, active: true },
-            king: { x: 7.5, y: 30, health: 150, maxHealth: 150, active: true }
+            king: {
+                x: playerKingCenter,
+                y: playerKingBottom + 2, // Center of 4x4
+                left: playerKingCenter - 2,
+                top: playerKingBottom,
+                width: 4,
+                height: 4,
+                health: 4400,
+                maxHealth: 4400,
+                active: true
+            },
+            left: {
+                x: playerKingCenter - 2 - 3 - 1.5, // 3 tiles left from king corner, center of 3x3
+                y: playerKingBottom - 1 - 1.5, // 1 tile up from king corner, center of 3x3
+                left: playerKingCenter - 2 - 3 - 3,
+                top: playerKingBottom - 1 - 3,
+                width: 3,
+                height: 3,
+                health: 2500,
+                maxHealth: 2500,
+                active: true
+            },
+            right: {
+                x: playerKingCenter + 2 + 3 + 1.5, // 3 tiles right from king corner, center of 3x3
+                y: playerKingBottom - 1 - 1.5, // 1 tile up from king corner, center of 3x3
+                left: playerKingCenter + 2 + 3,
+                top: playerKingBottom - 1 - 3,
+                width: 3,
+                height: 3,
+                health: 2500,
+                maxHealth: 2500,
+                active: true
+            }
         };
 
+        // Enemy towers (top) - mirror layout
+        const enemyKingTop = 2; // Starting from top
+
         this.enemyTowers = {
-            left: { x: 4, y: 3, health: 100, maxHealth: 100, active: true },
-            right: { x: 11, y: 3, health: 100, maxHealth: 100, active: true },
-            king: { x: 7.5, y: 1, health: 150, maxHealth: 150, active: true }
+            king: {
+                x: playerKingCenter,
+                y: enemyKingTop + 2, // Center of 4x4
+                left: playerKingCenter - 2,
+                top: enemyKingTop,
+                width: 4,
+                height: 4,
+                health: 4400,
+                maxHealth: 4400,
+                active: true
+            },
+            left: {
+                x: playerKingCenter - 2 - 3 - 1.5,
+                y: enemyKingTop + 4 + 1 + 1.5, // 1 tile down from king corner, center of 3x3
+                left: playerKingCenter - 2 - 3 - 3,
+                top: enemyKingTop + 4 + 1,
+                width: 3,
+                height: 3,
+                health: 2500,
+                maxHealth: 2500,
+                active: true
+            },
+            right: {
+                x: playerKingCenter + 2 + 3 + 1.5,
+                y: enemyKingTop + 4 + 1 + 1.5, // 1 tile down from king corner, center of 3x3
+                left: playerKingCenter + 2 + 3,
+                top: enemyKingTop + 4 + 1,
+                width: 3,
+                height: 3,
+                health: 2500,
+                maxHealth: 2500,
+                active: true
+            }
         };
 
         // Game entities
         this.troops = [];
         this.projectiles = [];
-        this.buildings = [];
+        this.spellEffects = [];
+
+        // Card hand
+        this.hand = [];
+        this.deck = [...PlayerData.deck];
+        this.selectedCardIndex = null;
+        this.placementPreview = null;
 
         this.init();
     }
@@ -74,6 +150,43 @@ class WrightRoyale {
         this.setupEventListeners();
         this.showLogoScreen();
         this.updatePlayerUI();
+    }
+
+    setupMapZones() {
+        // Define deployment zones and restricted areas
+        // Player side (bottom half)
+        this.playerDeploymentZone = {
+            // 6 center tiles at bottom
+            centerStart: Math.floor(CONFIG.gridWidth / 2) - 3, // 5
+            centerEnd: Math.floor(CONFIG.gridWidth / 2) + 3, // 11
+            centerY: CONFIG.gridHeight - 1 // Bottom row (23)
+        };
+
+        // Enemy side (top half)
+        this.enemyDeploymentZone = {
+            centerStart: Math.floor(CONFIG.gridWidth / 2) - 3, // 5
+            centerEnd: Math.floor(CONFIG.gridWidth / 2) + 3, // 11
+            centerY: 0 // Top row
+        };
+
+        // Bridges (2 tiles wide, across river)
+        const riverY = CONFIG.gridHeight / 2; // 12
+        this.bridges = [
+            {
+                // Left bridge - starts 1 tile from left, 1 tile below river
+                x: 1,
+                y: riverY - 0.5,
+                width: 2,
+                height: 1
+            },
+            {
+                // Right bridge - mirror on right side
+                x: CONFIG.gridWidth - 3,
+                y: riverY - 0.5,
+                width: 2,
+                height: 1
+            }
+        ];
     }
 
     setupEventListeners() {
@@ -95,10 +208,16 @@ class WrightRoyale {
             this.exitGame();
         });
 
-        // Canvas click for troop placement
+        // Canvas interactions
         this.canvas.addEventListener('click', (e) => {
             if (this.state === GameState.PLAYING) {
                 this.handleCanvasClick(e);
+            }
+        });
+
+        this.canvas.addEventListener('mousemove', (e) => {
+            if (this.state === GameState.PLAYING && this.selectedCardIndex !== null) {
+                this.handleCanvasHover(e);
             }
         });
     }
@@ -111,13 +230,16 @@ class WrightRoyale {
 
         // Auto-transition to menu after 3 seconds
         setTimeout(() => {
-            this.showMainMenu();
+            if (this.state === GameState.LOGO) {
+                this.showMainMenu();
+            }
         }, 3000);
 
         // Allow click to skip
-        this.logoScreen.addEventListener('click', () => {
+        const skipHandler = () => {
             this.showMainMenu();
-        }, { once: true });
+        };
+        this.logoScreen.addEventListener('click', skipHandler, { once: true });
     }
 
     showMainMenu() {
@@ -173,10 +295,15 @@ class WrightRoyale {
         this.lastElixirRegen = Date.now();
         this.troops = [];
         this.projectiles = [];
-        this.buildings = [];
+        this.spellEffects = [];
+        this.selectedCardIndex = null;
+        this.placementPreview = null;
 
         // Reset towers
         this.resetTowers();
+
+        // Initialize hand
+        this.initializeHand();
 
         // Start game loop
         this.gameLoop();
@@ -197,20 +324,179 @@ class WrightRoyale {
             tower.health = tower.maxHealth;
             tower.active = true;
         });
+
+        this.updateTowerHealthUI();
+    }
+
+    initializeHand() {
+        this.hand = [];
+        this.deck = [...PlayerData.deck].sort(() => Math.random() - 0.5); // Shuffle
+
+        // Draw initial 4 cards
+        for (let i = 0; i < 4; i++) {
+            this.drawCard();
+        }
+
+        this.updateHandUI();
+    }
+
+    drawCard() {
+        if (this.deck.length === 0) {
+            // Reshuffle deck if empty
+            this.deck = [...PlayerData.deck].sort(() => Math.random() - 0.5);
+        }
+
+        const cardId = this.deck.shift();
+        this.hand.push(cardId);
     }
 
     handleCanvasClick(e) {
+        if (this.selectedCardIndex === null) return;
+
         const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        const x = (e.clientX - rect.left) / rect.width * CONFIG.gridWidth;
+        const y = (e.clientY - rect.top) / rect.height * CONFIG.gridHeight;
 
-        // Convert to grid coordinates
-        const gridX = Math.floor(x / CONFIG.tileSize);
-        const gridY = Math.floor(y / CONFIG.tileSize);
+        this.playCard(this.selectedCardIndex, x, y);
+    }
 
-        console.log(`Clicked grid: (${gridX}, ${gridY})`);
+    handleCanvasHover(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / rect.width * CONFIG.gridWidth;
+        const y = (e.clientY - rect.top) / rect.height * CONFIG.gridHeight;
 
-        // TODO: Handle card placement when cards are implemented
+        this.placementPreview = { x, y };
+    }
+
+    canPlaceTroopAt(x, y) {
+        const gridX = Math.floor(x);
+        const gridY = Math.floor(y);
+
+        // Must be in player's half
+        if (gridY < CONFIG.gridHeight / 2) {
+            return false;
+        }
+
+        // Check if in restricted corner zones (5 tiles from each bottom corner)
+        const inLeftCorner = gridX < 5 && gridY >= CONFIG.gridHeight - 3;
+        const inRightCorner = gridX >= CONFIG.gridWidth - 5 && gridY >= CONFIG.gridHeight - 3;
+
+        if (inLeftCorner || inRightCorner) {
+            return false;
+        }
+
+        // Check if on tower hitbox
+        const towers = Object.values(this.playerTowers);
+        for (const tower of towers) {
+            if (tower.active &&
+                gridX >= tower.left && gridX < tower.left + tower.width &&
+                gridY >= tower.top && gridY < tower.top + tower.height) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    playCard(cardIndex, x, y) {
+        const cardId = this.hand[cardIndex];
+        const cardData = getCard(cardId);
+
+        // Check elixir
+        if (this.elixir < cardData.elixirCost) {
+            console.log('Not enough elixir!');
+            return;
+        }
+
+        // Check placement zone
+        if (cardData.type === CardType.TROOP) {
+            if (!this.canPlaceTroopAt(x, y)) {
+                console.log('Cannot place troop here!');
+                return;
+            }
+        } else if (cardData.type === CardType.SPELL) {
+            // Spells can be placed anywhere
+        }
+
+        // Spend elixir
+        this.elixir -= cardData.elixirCost;
+        this.updateElixirUI();
+
+        // Spawn card
+        if (cardData.type === CardType.TROOP) {
+            this.spawnTroop(x, y, cardData, true);
+        } else if (cardData.type === CardType.SPELL) {
+            this.castSpell(x, y, cardData, true);
+        }
+
+        // Remove card from hand and draw new one
+        this.hand.splice(cardIndex, 1);
+        this.drawCard();
+
+        // Deselect card
+        this.selectedCardIndex = null;
+        this.placementPreview = null;
+
+        // Update hand UI
+        this.updateHandUI();
+    }
+
+    spawnTroop(x, y, cardData, isPlayerTroop) {
+        const count = cardData.count || 1;
+
+        if (count === 1) {
+            const troop = new Troop(x, y, cardData, isPlayerTroop, this);
+            this.troops.push(troop);
+        } else {
+            // Spawn multiple troops in a circle formation
+            const radius = 0.5;
+            for (let i = 0; i < count; i++) {
+                const angle = (i / count) * Math.PI * 2;
+                const offsetX = Math.cos(angle) * radius;
+                const offsetY = Math.sin(angle) * radius;
+                const troop = new Troop(x + offsetX, y + offsetY, cardData, isPlayerTroop, this);
+                this.troops.push(troop);
+            }
+        }
+    }
+
+    castSpell(x, y, cardData, isPlayerSpell) {
+        const spellEffect = new SpellEffect(x, y, cardData, isPlayerSpell, this);
+        this.spellEffects.push(spellEffect);
+    }
+
+    updateHandUI() {
+        const handCardsEl = document.getElementById('handCards');
+        handCardsEl.innerHTML = '';
+
+        this.hand.forEach((cardId, index) => {
+            const cardData = getCard(cardId);
+            const cardEl = document.createElement('div');
+            cardEl.className = 'hand-card';
+            if (index === this.selectedCardIndex) {
+                cardEl.classList.add('selected');
+            }
+
+            // Check if affordable
+            if (this.elixir < cardData.elixirCost) {
+                cardEl.classList.add('disabled');
+            }
+
+            cardEl.innerHTML = `
+                <div class="card-preview" style="background-color: ${cardData.color}"></div>
+                <div class="card-name">${cardData.name}</div>
+                <div class="card-cost">${cardData.elixirCost}</div>
+            `;
+
+            cardEl.addEventListener('click', () => {
+                if (this.elixir >= cardData.elixirCost) {
+                    this.selectedCardIndex = this.selectedCardIndex === index ? null : index;
+                    this.updateHandUI();
+                }
+            });
+
+            handCardsEl.appendChild(cardEl);
+        });
     }
 
     gameLoop() {
@@ -222,8 +508,9 @@ class WrightRoyale {
         // Update elixir
         if (now - this.lastElixirRegen >= CONFIG.elixirRegenRate) {
             if (this.elixir < CONFIG.elixirMax) {
-                this.elixir++;
+                this.elixir = Math.min(CONFIG.elixirMax, this.elixir + 1);
                 this.updateElixirUI();
+                this.updateHandUI(); // Update to reflect affordable cards
             }
             this.lastElixirRegen = now;
         }
@@ -242,7 +529,12 @@ class WrightRoyale {
         // Update game entities
         this.updateTroops(deltaTime);
         this.updateProjectiles(deltaTime);
-        this.updateBuildings(deltaTime);
+        this.updateSpellEffects();
+
+        // Simple enemy AI - spawn troops occasionally
+        if (Math.random() < 0.001) {
+            this.enemyAI();
+        }
 
         // Render
         this.render();
@@ -251,18 +543,47 @@ class WrightRoyale {
         requestAnimationFrame(() => this.gameLoop());
     }
 
+    enemyAI() {
+        // Simple AI: randomly spawn a troop
+        const availableCards = Object.values(CARDS).filter(card =>
+            card.type === CardType.TROOP && card.elixirCost <= 4
+        );
+
+        if (availableCards.length > 0) {
+            const randomCard = availableCards[Math.floor(Math.random() * availableCards.length)];
+            const x = Math.random() * CONFIG.gridWidth;
+            const y = Math.random() * (CONFIG.gridHeight / 2);
+            this.spawnTroop(x, y, randomCard, false);
+        }
+    }
+
     updateTroops(deltaTime) {
-        // TODO: Implement troop AI and movement
-        this.troops = this.troops.filter(troop => troop.health > 0);
+        this.troops.forEach(troop => {
+            if (troop.active) {
+                troop.update(deltaTime);
+            }
+        });
+
+        // Remove dead/inactive troops
+        this.troops = this.troops.filter(troop => troop.active && troop.health > 0);
     }
 
     updateProjectiles(deltaTime) {
-        // TODO: Implement projectile movement
+        this.projectiles.forEach(projectile => {
+            projectile.update(deltaTime);
+        });
+
+        // Remove inactive projectiles
         this.projectiles = this.projectiles.filter(projectile => projectile.active);
     }
 
-    updateBuildings(deltaTime) {
-        // TODO: Implement building functionality
+    updateSpellEffects() {
+        this.spellEffects.forEach(effect => {
+            effect.update();
+        });
+
+        // Remove inactive spell effects
+        this.spellEffects = this.spellEffects.filter(effect => effect.active);
     }
 
     render() {
@@ -273,23 +594,31 @@ class WrightRoyale {
         // Draw grid
         this.drawGrid();
 
-        // Draw bridge
-        this.drawBridge();
+        // Draw restricted zones
+        this.drawRestrictedZones();
 
         // Draw river
         this.drawRiver();
 
+        // Draw bridges
+        this.drawBridges();
+
         // Draw towers
         this.drawTowers();
 
+        // Draw spell effects (under troops)
+        this.spellEffects.forEach(effect => effect.draw(this.ctx));
+
         // Draw troops
-        this.troops.forEach(troop => this.drawTroop(troop));
+        this.troops.forEach(troop => troop.draw(this.ctx));
 
         // Draw projectiles
-        this.projectiles.forEach(projectile => this.drawProjectile(projectile));
+        this.projectiles.forEach(projectile => projectile.draw(this.ctx));
 
-        // Draw buildings
-        this.buildings.forEach(building => this.drawBuilding(building));
+        // Draw placement preview
+        if (this.placementPreview && this.selectedCardIndex !== null) {
+            this.drawPlacementPreview();
+        }
     }
 
     drawGrid() {
@@ -312,7 +641,7 @@ class WrightRoyale {
             this.ctx.stroke();
         }
 
-        // Center line
+        // Center line (bridge level)
         this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
         this.ctx.lineWidth = 2;
         this.ctx.beginPath();
@@ -321,57 +650,81 @@ class WrightRoyale {
         this.ctx.stroke();
     }
 
-    drawBridge() {
-        // Bridge at vertical center
-        const bridgeY = CONFIG.gridHeight / 2;
-        const bridgeStartX = CONFIG.gridWidth / 2 - 1;
-        const bridgeWidth = 2;
+    drawBridges() {
+        this.bridges.forEach(bridge => {
+            this.ctx.fillStyle = '#8b7355';
+            this.ctx.fillRect(
+                bridge.x * CONFIG.tileSize,
+                bridge.y * CONFIG.tileSize,
+                bridge.width * CONFIG.tileSize,
+                bridge.height * CONFIG.tileSize
+            );
 
-        this.ctx.fillStyle = '#8b7355';
-        this.ctx.fillRect(
-            bridgeStartX * CONFIG.tileSize,
-            (bridgeY - 0.5) * CONFIG.tileSize,
-            bridgeWidth * CONFIG.tileSize,
-            CONFIG.tileSize
-        );
-
-        // Bridge borders
-        this.ctx.strokeStyle = '#654321';
-        this.ctx.lineWidth = 3;
-        this.ctx.strokeRect(
-            bridgeStartX * CONFIG.tileSize,
-            (bridgeY - 0.5) * CONFIG.tileSize,
-            bridgeWidth * CONFIG.tileSize,
-            CONFIG.tileSize
-        );
+            this.ctx.strokeStyle = '#654321';
+            this.ctx.lineWidth = 3;
+            this.ctx.strokeRect(
+                bridge.x * CONFIG.tileSize,
+                bridge.y * CONFIG.tileSize,
+                bridge.width * CONFIG.tileSize,
+                bridge.height * CONFIG.tileSize
+            );
+        });
     }
 
     drawRiver() {
-        // River on both sides of bridge
         const riverY = CONFIG.gridHeight / 2;
-        const bridgeStartX = CONFIG.gridWidth / 2 - 1;
-        const bridgeEndX = CONFIG.gridWidth / 2 + 1;
 
         this.ctx.fillStyle = '#4a90e2';
         this.ctx.globalAlpha = 0.6;
 
-        // Left river
+        // Draw full river (bridges will be drawn on top)
         this.ctx.fillRect(
             0,
             (riverY - 0.5) * CONFIG.tileSize,
-            bridgeStartX * CONFIG.tileSize,
-            CONFIG.tileSize
-        );
-
-        // Right river
-        this.ctx.fillRect(
-            bridgeEndX * CONFIG.tileSize,
-            (riverY - 0.5) * CONFIG.tileSize,
-            (CONFIG.gridWidth - bridgeEndX) * CONFIG.tileSize,
+            CONFIG.gridWidth * CONFIG.tileSize,
             CONFIG.tileSize
         );
 
         this.ctx.globalAlpha = 1;
+    }
+
+    drawRestrictedZones() {
+        // Draw restricted corner zones in darker color
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+
+        // Player side (bottom)
+        // Left corner - 5 tiles from left, bottom 3 rows
+        this.ctx.fillRect(
+            0,
+            (CONFIG.gridHeight - 3) * CONFIG.tileSize,
+            5 * CONFIG.tileSize,
+            3 * CONFIG.tileSize
+        );
+
+        // Right corner - 5 tiles from right, bottom 3 rows
+        this.ctx.fillRect(
+            (CONFIG.gridWidth - 5) * CONFIG.tileSize,
+            (CONFIG.gridHeight - 3) * CONFIG.tileSize,
+            5 * CONFIG.tileSize,
+            3 * CONFIG.tileSize
+        );
+
+        // Enemy side (top) - mirror
+        // Left corner
+        this.ctx.fillRect(
+            0,
+            0,
+            5 * CONFIG.tileSize,
+            3 * CONFIG.tileSize
+        );
+
+        // Right corner
+        this.ctx.fillRect(
+            (CONFIG.gridWidth - 5) * CONFIG.tileSize,
+            0,
+            5 * CONFIG.tileSize,
+            3 * CONFIG.tileSize
+        );
     }
 
     drawTowers() {
@@ -389,34 +742,25 @@ class WrightRoyale {
     drawTower(tower, color, isKing) {
         if (!tower.active) return;
 
-        const size = isKing ? CONFIG.tileSize * 1.5 : CONFIG.tileSize;
-        const x = tower.x * CONFIG.tileSize;
-        const y = tower.y * CONFIG.tileSize;
+        const width = tower.width * CONFIG.tileSize;
+        const height = tower.height * CONFIG.tileSize;
+        const x = tower.left * CONFIG.tileSize;
+        const y = tower.top * CONFIG.tileSize;
 
-        // Tower body
+        // Tower body (full hitbox)
         this.ctx.fillStyle = color;
-        this.ctx.fillRect(
-            x - size / 2,
-            y - size / 2,
-            size,
-            size
-        );
+        this.ctx.fillRect(x, y, width, height);
 
         // Tower border
         this.ctx.strokeStyle = '#1a1f1a';
         this.ctx.lineWidth = 3;
-        this.ctx.strokeRect(
-            x - size / 2,
-            y - size / 2,
-            size,
-            size
-        );
+        this.ctx.strokeRect(x, y, width, height);
 
         // Health bar
-        const barWidth = size;
-        const barHeight = 6;
-        const barX = x - barWidth / 2;
-        const barY = y - size / 2 - 12;
+        const barWidth = width;
+        const barHeight = 8;
+        const barX = x;
+        const barY = y - 12;
 
         // Background
         this.ctx.fillStyle = '#1a1f1a';
@@ -428,22 +772,40 @@ class WrightRoyale {
         this.ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
     }
 
-    drawTroop(troop) {
-        // TODO: Implement troop rendering
-    }
+    drawPlacementPreview() {
+        const cardId = this.hand[this.selectedCardIndex];
+        const cardData = getCard(cardId);
+        const x = this.placementPreview.x * CONFIG.tileSize;
+        const y = this.placementPreview.y * CONFIG.tileSize;
 
-    drawProjectile(projectile) {
-        // TODO: Implement projectile rendering
-    }
+        // Check if valid placement
+        const isValid = cardData.type === CardType.SPELL || this.canPlaceTroopAt(this.placementPreview.x, this.placementPreview.y);
 
-    drawBuilding(building) {
-        // TODO: Implement building rendering
+        this.ctx.fillStyle = isValid ? 'rgba(78, 205, 196, 0.3)' : 'rgba(255, 107, 107, 0.3)';
+        this.ctx.strokeStyle = isValid ? '#4ecdc4' : '#ff6b6b';
+        this.ctx.lineWidth = 3;
+
+        if (cardData.type === CardType.SPELL) {
+            // Draw radius circle for spells
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, cardData.radius * CONFIG.tileSize, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.stroke();
+        } else {
+            // Draw placement marker for troops
+            const size = 20;
+            this.ctx.fillRect(x - size / 2, y - size / 2, size, size);
+            this.ctx.strokeRect(x - size / 2, y - size / 2, size, size);
+        }
     }
 
     updateElixirUI() {
-        document.getElementById('elixirCount').textContent = this.elixir;
+        document.getElementById('elixirCount').textContent = Math.floor(this.elixir);
         const fillPercent = (this.elixir / CONFIG.elixirMax) * 100;
-        document.getElementById('elixirFill').style.width = fillPercent + '%';
+        const fillEl = document.getElementById('elixirFill');
+        if (fillEl) {
+            fillEl.style.width = fillPercent + '%';
+        }
     }
 
     updateTimerUI() {
@@ -474,7 +836,7 @@ class WrightRoyale {
     endMatch() {
         this.state = GameState.ENDED;
 
-        // Calculate winner
+        // Count active towers
         const playerTowerCount = Object.values(this.playerTowers).filter(t => t.active).length;
         const enemyTowerCount = Object.values(this.enemyTowers).filter(t => t.active).length;
 
@@ -491,134 +853,11 @@ class WrightRoyale {
             PlayerData.gold += 20;
         }
 
-        alert(`Match ended: ${result}`);
+        alert(`Match ended: ${result}\nPlayer Towers: ${playerTowerCount}\nEnemy Towers: ${enemyTowerCount}`);
         this.updatePlayerUI();
         this.exitGame();
     }
 }
-
-// ===== CARD DATA STRUCTURES (for future implementation) =====
-
-class Card {
-    constructor(data) {
-        this.id = data.id;
-        this.name = data.name;
-        this.type = data.type; // 'troop', 'spell', 'building'
-        this.elixirCost = data.elixirCost;
-        this.rarity = data.rarity; // 'common', 'rare', 'epic', 'legendary'
-        this.description = data.description;
-    }
-}
-
-class Troop {
-    constructor(x, y, data, isPlayerTroop) {
-        this.x = x;
-        this.y = y;
-        this.data = data;
-        this.isPlayerTroop = isPlayerTroop;
-        this.health = data.health;
-        this.maxHealth = data.health;
-        this.damage = data.damage;
-        this.speed = data.speed;
-        this.range = data.range;
-        this.attackSpeed = data.attackSpeed;
-        this.target = null;
-        this.lastAttack = 0;
-    }
-
-    update(deltaTime) {
-        // TODO: Implement troop AI
-    }
-
-    findTarget(enemies, towers) {
-        // TODO: Implement target finding
-    }
-
-    attack() {
-        // TODO: Implement attack logic
-    }
-}
-
-// ===== PLACEHOLDER CARD DEFINITIONS =====
-// These will be expanded with the 42 original cards
-
-const CARD_TEMPLATES = {
-    // Example troop card
-    knight: {
-        id: 'knight',
-        name: 'Knight',
-        type: 'troop',
-        elixirCost: 3,
-        rarity: 'common',
-        description: 'Tough melee fighter',
-        health: 100,
-        damage: 20,
-        speed: 1,
-        range: 1,
-        attackSpeed: 1.2,
-        targetsAir: false,
-        targetsGround: true,
-        preferredTarget: 'troops'
-    },
-
-    musketeer: {
-        id: 'musketeer',
-        name: 'Musketeer',
-        type: 'troop',
-        elixirCost: 4,
-        rarity: 'rare',
-        description: 'Ranged attacker, hits air and ground',
-        health: 60,
-        damage: 15,
-        speed: 1,
-        range: 5,
-        attackSpeed: 1,
-        targetsAir: true,
-        targetsGround: true,
-        preferredTarget: 'any'
-    },
-
-    giant: {
-        id: 'giant',
-        name: 'Giant',
-        type: 'troop',
-        elixirCost: 5,
-        rarity: 'rare',
-        description: 'Slow but tanky, targets buildings',
-        health: 300,
-        damage: 30,
-        speed: 0.5,
-        range: 1,
-        attackSpeed: 1.5,
-        targetsAir: false,
-        targetsGround: true,
-        preferredTarget: 'buildings'
-    },
-
-    arrows: {
-        id: 'arrows',
-        name: 'Arrows',
-        type: 'spell',
-        elixirCost: 3,
-        rarity: 'common',
-        description: 'Area damage to air and ground units',
-        damage: 40,
-        radius: 3,
-        delay: 0.5
-    },
-
-    fireball: {
-        id: 'fireball',
-        name: 'Fireball',
-        type: 'spell',
-        elixirCost: 4,
-        rarity: 'rare',
-        description: 'High damage area spell',
-        damage: 80,
-        radius: 2,
-        delay: 1
-    }
-};
 
 // ===== START GAME =====
 const game = new WrightRoyale();
