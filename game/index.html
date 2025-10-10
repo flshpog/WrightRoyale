@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wright Royale</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Logo Screen -->
+    <div id="logoScreen" class="logo-screen">
+        <img src="wrightroyale.png" alt="Wright Royale" class="logo-image pulse">
+    </div>
+
+    <!-- Main Menu -->
+    <div id="mainMenu" class="main-menu hidden">
+        <div class="menu-header">
+            <h1 class="game-title">WRIGHT ROYALE</h1>
+            <div class="player-info">
+                <div class="player-stats">
+                    <div class="stat-item">
+                        <span class="stat-icon gold">◆</span>
+                        <span class="stat-value" id="playerGold">1000</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-icon gems">♦</span>
+                        <span class="stat-value" id="playerGems">50</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-icon level">LVL</span>
+                        <span class="stat-value" id="playerLevel">1</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content Areas -->
+        <div class="content-area">
+            <!-- Shop Tab -->
+            <div id="shopTab" class="tab-content">
+                <h2>SHOP</h2>
+                <div class="coming-soon">
+                    <p>Shop features coming soon!</p>
+                    <div class="pixel-box">
+                        <span>$</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventory Tab -->
+            <div id="inventoryTab" class="tab-content hidden">
+                <h2>CARDS</h2>
+                <div class="inventory-container">
+                    <div class="deck-display">
+                        <h3>Your Deck</h3>
+                        <div class="deck-slots">
+                            <div class="deck-slot empty">?</div>
+                            <div class="deck-slot empty">?</div>
+                            <div class="deck-slot empty">?</div>
+                            <div class="deck-slot empty">?</div>
+                            <div class="deck-slot empty">?</div>
+                            <div class="deck-slot empty">?</div>
+                            <div class="deck-slot empty">?</div>
+                            <div class="deck-slot empty">?</div>
+                        </div>
+                    </div>
+                    <div class="card-collection">
+                        <h3>Card Collection</h3>
+                        <p class="coming-soon-text">Cards will appear here once implemented!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Play Tab -->
+            <div id="playTab" class="tab-content hidden">
+                <h2>BATTLE</h2>
+                <div class="play-container">
+                    <div class="battle-info">
+                        <div class="info-box">
+                            <h3>Arena 1</h3>
+                            <p>Training Ground</p>
+                        </div>
+                        <div class="trophy-display">
+                            <span class="trophy-icon">🏆</span>
+                            <span class="trophy-count" id="playerTrophies">0</span>
+                        </div>
+                    </div>
+                    <button id="playButton" class="play-button">
+                        <span class="btn-text">PLAY</span>
+                    </button>
+                    <div class="game-modes">
+                        <h3>Game Modes</h3>
+                        <div class="mode-list">
+                            <div class="mode-card">
+                                <div class="mode-name">1v1 Battle</div>
+                                <div class="mode-desc">Classic battle mode</div>
+                            </div>
+                            <div class="mode-card locked">
+                                <div class="mode-name">2v2 Battle</div>
+                                <div class="mode-desc">Coming Soon</div>
+                            </div>
+                            <div class="mode-card locked">
+                                <div class="mode-name">Tournament</div>
+                                <div class="mode-desc">Coming Soon</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Clans Tab -->
+            <div id="clansTab" class="tab-content hidden">
+                <h2>CLANS</h2>
+                <div class="coming-soon">
+                    <p>Clan features coming soon!</p>
+                    <div class="pixel-box">
+                        <span>👥</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Under Construction Tab -->
+            <div id="constructionTab" class="tab-content hidden">
+                <h2>UNDER CONSTRUCTION</h2>
+                <div class="coming-soon">
+                    <p>More features in development!</p>
+                    <div class="pixel-box">
+                        <span>🚧</span>
+                    </div>
+                    <div class="construction-info">
+                        <h3>Coming Soon:</h3>
+                        <ul>
+                            <li>Profile customization</li>
+                            <li>Card trading</li>
+                            <li>Replays</li>
+                            <li>Special events</li>
+                            <li>Leaderboards</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation Tabs -->
+        <div class="bottom-nav">
+            <button class="nav-tab active" data-tab="shopTab">
+                <div class="nav-icon">$</div>
+                <div class="nav-label">Shop</div>
+            </button>
+            <button class="nav-tab" data-tab="inventoryTab">
+                <div class="nav-icon">📦</div>
+                <div class="nav-label">Cards</div>
+            </button>
+            <button class="nav-tab" data-tab="playTab">
+                <div class="nav-icon">⚔</div>
+                <div class="nav-label">Play</div>
+            </button>
+            <button class="nav-tab" data-tab="clansTab">
+                <div class="nav-icon">👥</div>
+                <div class="nav-label">Clans</div>
+            </button>
+            <button class="nav-tab" data-tab="constructionTab">
+                <div class="nav-icon">🚧</div>
+                <div class="nav-label">More</div>
+            </button>
+        </div>
+    </div>
+
+    <!-- Game Canvas (hidden initially) -->
+    <div id="gameScreen" class="game-screen hidden">
+        <canvas id="gameCanvas" width="640" height="1280"></canvas>
+        <div class="game-ui">
+            <div class="top-bar">
+                <div class="player-tower-health">
+                    <div class="tower-hp" id="playerLeftTower">100%</div>
+                    <div class="tower-hp king" id="playerKingTower">100%</div>
+                    <div class="tower-hp" id="playerRightTower">100%</div>
+                </div>
+                <div class="match-timer" id="matchTimer">3:00</div>
+                <div class="enemy-tower-health">
+                    <div class="tower-hp" id="enemyLeftTower">100%</div>
+                    <div class="tower-hp king" id="enemyKingTower">100%</div>
+                    <div class="tower-hp" id="enemyRightTower">100%</div>
+                </div>
+            </div>
+
+            <div class="card-hand">
+                <div class="elixir-bar">
+                    <div class="elixir-count" id="elixirCount">10</div>
+                    <div class="elixir-fill" id="elixirFill"></div>
+                </div>
+                <div class="hand-cards" id="handCards">
+                    <!-- Cards will be dynamically inserted here -->
+                </div>
+            </div>
+
+            <button id="exitGame" class="exit-btn">EXIT</button>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
