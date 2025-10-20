@@ -53,16 +53,21 @@ class WrightRoyale {
         this.setupMapZones();
 
         // Towers (grid coordinates with hitboxes)
+        // Bridge is at y=12 (center of 24-tile grid)
+        // Princess towers should be 7 tiles from bridge
+        const bridgeY = CONFIG.gridHeight / 2; // 12
+        const centerX = CONFIG.gridWidth / 2; // 8
+
         // Player towers (bottom)
-        const playerKingBottom = 18; // 1 tile up from the 4 center playable tiles
-        const playerKingCenter = CONFIG.gridWidth / 2; // 8
+        const playerPrincessTop = bridgeY + 7; // 7 tiles below bridge = y:19
+        const playerKingTop = bridgeY + 8; // Behind princess towers = y:20
 
         this.playerTowers = {
             king: {
-                x: playerKingCenter,
-                y: playerKingBottom + 2, // Center of 4x4
-                left: playerKingCenter - 2,
-                top: playerKingBottom,
+                x: centerX,
+                y: playerKingTop + 2, // Center of 4x4
+                left: centerX - 2,
+                top: playerKingTop,
                 width: 4,
                 height: 4,
                 health: 4400,
@@ -70,10 +75,10 @@ class WrightRoyale {
                 active: true
             },
             left: {
-                x: playerKingCenter - 2 - 3 - 1.5, // 3 tiles left from king corner, center of 3x3
-                y: playerKingBottom - 1 - 1.5, // 1 tile up from king corner, center of 3x3
-                left: playerKingCenter - 2 - 3 - 3,
-                top: playerKingBottom - 1 - 3,
+                x: 3, // Left side
+                y: playerPrincessTop + 1.5, // Center of 3x3
+                left: 3 - 1.5,
+                top: playerPrincessTop,
                 width: 3,
                 height: 3,
                 health: 2500,
@@ -81,10 +86,10 @@ class WrightRoyale {
                 active: true
             },
             right: {
-                x: playerKingCenter + 2 + 3 + 1.5, // 3 tiles right from king corner, center of 3x3
-                y: playerKingBottom - 1 - 1.5, // 1 tile up from king corner, center of 3x3
-                left: playerKingCenter + 2 + 3,
-                top: playerKingBottom - 1 - 3,
+                x: CONFIG.gridWidth - 3, // Right side (mirror of left)
+                y: playerPrincessTop + 1.5, // Center of 3x3
+                left: CONFIG.gridWidth - 3 - 1.5,
+                top: playerPrincessTop,
                 width: 3,
                 height: 3,
                 health: 2500,
@@ -94,13 +99,14 @@ class WrightRoyale {
         };
 
         // Enemy towers (top) - mirror layout
-        const enemyKingTop = 2; // Starting from top
+        const enemyPrincessTop = bridgeY - 7 - 3; // 7 tiles above bridge, minus 3 for tower height = y:2
+        const enemyKingTop = bridgeY - 8 - 4; // Behind princess towers, minus 4 for tower height = y:0
 
         this.enemyTowers = {
             king: {
-                x: playerKingCenter,
+                x: centerX,
                 y: enemyKingTop + 2, // Center of 4x4
-                left: playerKingCenter - 2,
+                left: centerX - 2,
                 top: enemyKingTop,
                 width: 4,
                 height: 4,
@@ -109,10 +115,10 @@ class WrightRoyale {
                 active: true
             },
             left: {
-                x: playerKingCenter - 2 - 3 - 1.5,
-                y: enemyKingTop + 4 + 1 + 1.5, // 1 tile down from king corner, center of 3x3
-                left: playerKingCenter - 2 - 3 - 3,
-                top: enemyKingTop + 4 + 1,
+                x: 3, // Left side
+                y: enemyPrincessTop + 1.5, // Center of 3x3
+                left: 3 - 1.5,
+                top: enemyPrincessTop,
                 width: 3,
                 height: 3,
                 health: 2500,
@@ -120,10 +126,10 @@ class WrightRoyale {
                 active: true
             },
             right: {
-                x: playerKingCenter + 2 + 3 + 1.5,
-                y: enemyKingTop + 4 + 1 + 1.5, // 1 tile down from king corner, center of 3x3
-                left: playerKingCenter + 2 + 3,
-                top: enemyKingTop + 4 + 1,
+                x: CONFIG.gridWidth - 3, // Right side (mirror of left)
+                y: enemyPrincessTop + 1.5, // Center of 3x3
+                left: CONFIG.gridWidth - 3 - 1.5,
+                top: enemyPrincessTop,
                 width: 3,
                 height: 3,
                 health: 2500,
@@ -302,8 +308,12 @@ class WrightRoyale {
         // Reset towers
         this.resetTowers();
 
-        // Initialize hand
+        // Initialize player hand
         this.initializeHand();
+
+        // Initialize enemy deck (same 8 cards, different shuffle)
+        this.enemyDeckCycle = [...PlayerData.deck].sort(() => Math.random() - 0.5);
+        this.enemyDeckPosition = 0;
 
         // Start game loop
         this.gameLoop();
@@ -330,7 +340,9 @@ class WrightRoyale {
 
     initializeHand() {
         this.hand = [];
-        this.deck = [...PlayerData.deck].sort(() => Math.random() - 0.5); // Shuffle
+        // Create shuffled cycle of 8 cards that will repeat
+        this.deckCycle = [...PlayerData.deck].sort(() => Math.random() - 0.5);
+        this.deckPosition = 0; // Track position in cycle
 
         // Draw initial 4 cards
         for (let i = 0; i < 4; i++) {
@@ -341,13 +353,12 @@ class WrightRoyale {
     }
 
     drawCard() {
-        if (this.deck.length === 0) {
-            // Reshuffle deck if empty
-            this.deck = [...PlayerData.deck].sort(() => Math.random() - 0.5);
-        }
-
-        const cardId = this.deck.shift();
+        // Get next card from the cycle
+        const cardId = this.deckCycle[this.deckPosition];
         this.hand.push(cardId);
+
+        // Move to next position in cycle, wrapping around after 8 cards
+        this.deckPosition = (this.deckPosition + 1) % this.deckCycle.length;
     }
 
     handleCanvasClick(e) {
@@ -544,17 +555,19 @@ class WrightRoyale {
     }
 
     enemyAI() {
-        // Simple AI: randomly spawn a troop
-        const availableCards = Object.values(CARDS).filter(card =>
-            card.type === CardType.TROOP && card.elixirCost <= 4
-        );
+        // Simple AI: spawn next card from deck cycle
+        const cardId = this.enemyDeckCycle[this.enemyDeckPosition];
+        const cardData = getCard(cardId);
 
-        if (availableCards.length > 0) {
-            const randomCard = availableCards[Math.floor(Math.random() * availableCards.length)];
+        // Only spawn if it's a troop (skip spells for now in AI)
+        if (cardData.type === CardType.TROOP) {
             const x = Math.random() * CONFIG.gridWidth;
             const y = Math.random() * (CONFIG.gridHeight / 2);
-            this.spawnTroop(x, y, randomCard, false);
+            this.spawnTroop(x, y, cardData, false);
         }
+
+        // Move to next card in enemy's cycle
+        this.enemyDeckPosition = (this.enemyDeckPosition + 1) % this.enemyDeckCycle.length;
     }
 
     updateTroops(deltaTime) {

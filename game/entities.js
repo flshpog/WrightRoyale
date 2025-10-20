@@ -13,7 +13,7 @@ class Troop {
         this.health = cardData.health;
         this.maxHealth = cardData.health;
         this.damage = cardData.damage;
-        this.speed = (cardData.speed * 0.02) / 1000; // Convert to tiles per millisecond (speed * 0.02 tiles/second / 1000ms)
+        this.speed = (cardData.speed * 0.003) / 1000; // Convert to tiles per millisecond - drastically reduced for slower movement
         this.range = cardData.range;
         this.hitSpeed = cardData.hitSpeed * 1000; // Convert to milliseconds
         this.firstHitSpeed = cardData.firstHitSpeed * 1000;
@@ -271,6 +271,15 @@ class Troop {
                            (healthPercent > 0.25 ? '#ffd700' : '#ff6b6b');
             ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
         }
+
+        // Draw troop name above the troop
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.font = 'bold 10px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        const nameY = this.health < this.maxHealth ? pixelY - radius - 14 : pixelY - radius - 6;
+        ctx.fillText(this.cardData.name, pixelX, nameY);
+        ctx.textBaseline = 'alphabetic'; // Reset to default
 
         // Draw deploy timer
         if (!this.deployed) {
