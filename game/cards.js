@@ -4,7 +4,8 @@
 const CardType = {
     TROOP: 'troop',
     SPELL: 'spell',
-    BUILDING: 'building'
+    BUILDING: 'building',
+    TOWER: 'tower'
 };
 
 // Rarity levels
@@ -231,6 +232,58 @@ const CARDS = {
         // Visual
         color: '#ff1493',
         size: 0.9
+    },
+
+    princess_tower: {
+        id: 'princess_tower',
+        name: 'Princess Tower',
+        description: "A defensive tower that protects your side of the arena. Shoots arrows at approaching enemies.",
+        type: CardType.TOWER,
+        rarity: Rarity.COMMON,
+        elixirCost: 0, // Towers don't cost elixir
+
+        // Tower stats
+        health: 3052,
+        damage: 109,
+        hitSpeed: 0.8,
+        firstHitSpeed: 0.8,
+        speed: 0, // Towers don't move
+        deployTime: 0,
+        range: 7.5,
+        projectileSpeed: 800,
+        target: TargetType.AIR_AND_GROUND,
+        count: 1,
+        transport: TransportType.GROUND,
+
+        // Visual
+        color: '#9b59b6',
+        size: 1.5
+    },
+
+    king_tower: {
+        id: 'king_tower',
+        name: 'King Tower',
+        description: "The King's main tower. Activates when a Princess Tower is destroyed or when damaged. Protects the King!",
+        type: CardType.TOWER,
+        rarity: Rarity.COMMON,
+        elixirCost: 0, // Towers don't cost elixir
+
+        // Tower stats
+        health: 4824,
+        damage: 109,
+        hitSpeed: 1.0,
+        firstHitSpeed: 1.0,
+        speed: 0, // Towers don't move
+        deployTime: 0,
+        range: 7,
+        projectileSpeed: 800,
+        target: TargetType.AIR_AND_GROUND,
+        count: 1,
+        transport: TransportType.GROUND,
+
+        // Visual
+        color: '#e74c3c',
+        size: 2.0
     }
 };
 

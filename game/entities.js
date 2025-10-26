@@ -13,8 +13,9 @@ class Troop {
         this.health = cardData.health;
         this.maxHealth = cardData.health;
         this.damage = cardData.damage;
-        this.speed = (cardData.speed * 0.003) / 1000; // Convert to tiles per millisecond - drastically reduced for slower movement
+        this.speed = (cardData.speed * 0.006) / 1000; // Convert to tiles per millisecond - 2x original speed
         this.range = cardData.range;
+        this.visionRange = 8; // 8 tiles vision range - prevents troops from wandering across entire map
         this.hitSpeed = cardData.hitSpeed * 1000; // Convert to milliseconds
         this.firstHitSpeed = cardData.firstHitSpeed * 1000;
         this.projectileSpeed = cardData.projectileSpeed || null;
@@ -56,21 +57,38 @@ class Troop {
     }
 
     findTarget() {
-        // Get all possible targets
+        // Get all possible targets within vision range
         const possibleTargets = this.getPossibleTargets();
 
-        // If no current target or current target is dead/destroyed, find new one
+        // If no current target or current target is dead/destroyed/out of range, find new one
         if (!this.target || this.target.health <= 0 || !this.target.active) {
             this.target = this.findClosestTarget(possibleTargets);
+            return;
+        }
+
+        // Check if current target is still in vision range
+        const distToCurrentTarget = this.distanceTo(this.target);
+        if (distToCurrentTarget > this.visionRange) {
+            this.target = this.findClosestTarget(possibleTargets);
+            return;
+        }
+
+        // Always retarget to the closest enemy (Clash Royale behavior)
+        // This ensures troops always attack the nearest threat
+        const closestTarget = this.findClosestTarget(possibleTargets);
+        if (closestTarget) {
+            this.target = closestTarget;
         }
     }
 
     getPossibleTargets() {
         const targets = [];
 
-        // Get enemy troops
+        // Get enemy troops within vision range
         const enemyTroops = this.game.troops.filter(troop =>
-            troop.isPlayerTroop !== this.isPlayerTroop && troop.health > 0
+            troop.isPlayerTroop !== this.isPlayerTroop &&
+            troop.health > 0 &&
+            this.distanceTo(troop) <= this.visionRange
         );
 
         // Get enemy towers
@@ -78,7 +96,9 @@ class Troop {
             Object.values(this.game.enemyTowers) :
             Object.values(this.game.playerTowers);
 
-        const activeTowers = enemyTowers.filter(tower => tower.active);
+        const activeTowers = enemyTowers.filter(tower =>
+            tower.active && this.distanceToTower(tower) <= this.visionRange
+        );
 
         // Filter based on target type
         if (this.targetType === TargetType.BUILDINGS) {
@@ -195,6 +215,12 @@ class Troop {
         return Math.sqrt(dx * dx + dy * dy);
     }
 
+    distanceToTower(tower) {
+        const dx = tower.x - this.x;
+        const dy = tower.y - this.y;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
     tryAttack() {
         const now = Date.now();
         const requiredWaitTime = this.isFirstAttack ? this.firstHitSpeed : this.hitSpeed;
@@ -218,11 +244,29 @@ class Troop {
             this.game.projectiles.push(projectile);
         } else {
             // Melee attack - deal damage directly
+            const isTower = this.target.hasOwnProperty('maxHealth') && !this.target.hasOwnProperty('transport');
+
             this.target.health -= this.damage;
+
+            // If target is a tower, handle activation
+            if (isTower && this.target.cardData) {
+                this.game.onTowerDamaged(this.target, this.target.isPlayerTower);
+            }
+
             if (this.target.health <= 0) {
                 this.target.active = false;
+
+                // Check which tower type was destroyed
+                if (isTower && this.target.cardData) {
+                    if (this.target.cardData.id === 'princess_tower') {
+                        this.game.onPrincessTowerDestroyed(this.target);
+                    } else if (this.target.cardData.id === 'king_tower') {
+                        this.game.onKingTowerDestroyed(this.target);
+                    }
+                }
+
                 // Only update tower UI if it's a tower
-                if (this.target.hasOwnProperty('maxHealth') && !this.target.hasOwnProperty('transport')) {
+                if (isTower) {
                     this.game.updateTowerHealthUI();
                 }
             }
@@ -239,9 +283,9 @@ class Troop {
     }
 
     draw(ctx) {
-        const pixelX = this.x * CONFIG.tileSize;
-        const pixelY = this.y * CONFIG.tileSize;
-        const radius = this.size * CONFIG.tileSize / 2;
+        const pixelX = this.x * CONFIG.tileSizeX;
+        const pixelY = this.y * CONFIG.tileSizeY;
+        const radius = this.size * ((CONFIG.tileSizeX + CONFIG.tileSizeY) / 2) / 2;
 
         // Draw troop circle
         ctx.fillStyle = this.color;
@@ -336,21 +380,38 @@ class Projectile {
     hit() {
         if (!this.target) return;
 
+        const isTower = this.target.hasOwnProperty('maxHealth') && !this.target.hasOwnProperty('transport');
+
         this.target.health -= this.damage;
+
+        // If target is a tower, handle activation
+        if (isTower && this.target.cardData) {
+            this.game.onTowerDamaged(this.target, this.target.isPlayerTower);
+        }
 
         if (this.target.health <= 0) {
             this.target.active = false;
+
+            // Check which tower type was destroyed
+            if (isTower && this.target.cardData) {
+                if (this.target.cardData.id === 'princess_tower') {
+                    this.game.onPrincessTowerDestroyed(this.target);
+                } else if (this.target.cardData.id === 'king_tower') {
+                    this.game.onKingTowerDestroyed(this.target);
+                }
+            }
+
             // Only update tower UI if it's a tower
-            if (this.target.hasOwnProperty('maxHealth') && !this.target.hasOwnProperty('transport')) {
+            if (isTower) {
                 this.game.updateTowerHealthUI();
             }
         }
     }
 
     draw(ctx) {
-        const pixelX = this.x * CONFIG.tileSize;
-        const pixelY = this.y * CONFIG.tileSize;
-        const radius = this.size * CONFIG.tileSize;
+        const pixelX = this.x * CONFIG.tileSizeX;
+        const pixelY = this.y * CONFIG.tileSizeY;
+        const radius = this.size * ((CONFIG.tileSizeX + CONFIG.tileSizeY) / 2);
 
         ctx.fillStyle = this.color;
         ctx.beginPath();
@@ -404,23 +465,52 @@ class SpellEffect {
                 (this.cardData.crownTowerDamage || this.cardData.areaDamage) :
                 this.cardData.areaDamage;
 
-            // For arrows, deal damage in 3 hits
+            // For arrows, deal damage in multiple hits (each hit does full damage)
             if (this.cardData.damageHits > 1) {
-                const damagePerHit = damageAmount / this.cardData.damageHits;
                 for (let i = 0; i < this.cardData.damageHits; i++) {
                     setTimeout(() => {
                         if (target.health > 0) {
-                            target.health -= damagePerHit;
+                            target.health -= damageAmount;
+
+                            // If target is a tower, handle activation
+                            if (isTower && target.cardData) {
+                                this.game.onTowerDamaged(target, target.isPlayerTower);
+                            }
+
                             if (target.health <= 0 && target.active !== undefined) {
                                 target.active = false;
+
+                                // Check which tower type was destroyed
+                                if (isTower && target.cardData) {
+                                    if (target.cardData.id === 'princess_tower') {
+                                        this.game.onPrincessTowerDestroyed(target);
+                                    } else if (target.cardData.id === 'king_tower') {
+                                        this.game.onKingTowerDestroyed(target);
+                                    }
+                                }
                             }
                         }
                     }, i * 100);
                 }
             } else {
                 target.health -= damageAmount;
+
+                // If target is a tower, handle activation
+                if (isTower && target.cardData) {
+                    this.game.onTowerDamaged(target, target.isPlayerTower);
+                }
+
                 if (target.health <= 0 && target.active !== undefined) {
                     target.active = false;
+
+                    // Check which tower type was destroyed
+                    if (isTower && target.cardData) {
+                        if (target.cardData.id === 'princess_tower') {
+                            this.game.onPrincessTowerDestroyed(target);
+                        } else if (target.cardData.id === 'king_tower') {
+                            this.game.onKingTowerDestroyed(target);
+                        }
+                    }
                 }
             }
         });
@@ -459,9 +549,9 @@ class SpellEffect {
     }
 
     draw(ctx) {
-        const pixelX = this.x * CONFIG.tileSize;
-        const pixelY = this.y * CONFIG.tileSize;
-        const radius = this.cardData.radius * CONFIG.tileSize;
+        const pixelX = this.x * CONFIG.tileSizeX;
+        const pixelY = this.y * CONFIG.tileSizeY;
+        const radius = this.cardData.radius * ((CONFIG.tileSizeX + CONFIG.tileSizeY) / 2);
 
         const elapsed = Date.now() - this.startTime;
         const progress = elapsed / this.duration;

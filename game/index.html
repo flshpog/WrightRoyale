@@ -9,13 +9,15 @@
 <body>
     <!-- Logo Screen -->
     <div id="logoScreen" class="logo-screen">
-        <img src="wrightroyale.png" alt="Wright Royale" class="logo-image pulse">
+        <img src="images/wrightroyale.png" alt="Wright Royale" class="logo-image pulse">
     </div>
 
     <!-- Main Menu -->
     <div id="mainMenu" class="main-menu hidden">
         <div class="menu-header">
-            <h1 class="game-title">WRIGHT ROYALE</h1>
+            <div class="game-title-logo">
+                <img src="images/wrightroyale.png" alt="Wright Royale" class="title-logo">
+            </div>
             <div class="player-info">
                 <div class="player-stats">
                     <div class="stat-item">
@@ -168,7 +170,7 @@
 
     <!-- Game Canvas (hidden initially) -->
     <div id="gameScreen" class="game-screen hidden">
-        <canvas id="gameCanvas" width="640" height="960"></canvas>
+        <canvas id="gameCanvas" width="400" height="960"></canvas> <!-- 16*25 x 24*40 -->
         <div class="game-ui">
             <div class="top-bar">
                 <div class="player-tower-health">
@@ -187,7 +189,9 @@
             <div class="card-hand">
                 <div class="elixir-bar">
                     <div class="elixir-count" id="elixirCount">10</div>
-                    <div class="elixir-fill" id="elixirFill"></div>
+                    <div class="elixir-container">
+                        <div class="elixir-fill" id="elixirFill"></div>
+                    </div>
                 </div>
                 <div class="hand-cards" id="handCards">
                     <!-- Cards will be dynamically inserted here -->
@@ -195,6 +199,50 @@
             </div>
 
             <button id="exitGame" class="exit-btn">EXIT</button>
+        </div>
+
+        <!-- End Game Overlay -->
+        <div id="endGameOverlay" class="end-game-overlay hidden">
+            <div class="end-game-content">
+                <!-- Enemy Banner (Top) -->
+                <div class="player-banner enemy-banner">
+                    <div class="banner-name">Enemy</div>
+                    <div class="crown-display">
+                        <img src="images/redcrown.png" alt="Crown" class="crown-icon">
+                        <span class="crown-count" id="enemyCrownCount">0</span>
+                    </div>
+                </div>
+
+                <!-- VS Text -->
+                <div class="vs-text">VS</div>
+
+                <!-- Player Banner (Bottom) -->
+                <div class="player-banner player-banner-bottom">
+                    <div class="result-text" id="resultText">VICTORY!</div>
+                    <div class="banner-name">You</div>
+                    <div class="crown-display">
+                        <img src="images/bluecrown.png" alt="Crown" class="crown-icon">
+                        <span class="crown-count" id="playerCrownCount">0</span>
+                    </div>
+                </div>
+
+                <!-- Rewards Section -->
+                <div class="rewards-section">
+                    <div class="trophy-reward">
+                        <span class="trophy-icon">🏆</span>
+                        <span class="trophy-amount" id="trophyReward">+30</span>
+                        <div class="reward-label">Trophies</div>
+                    </div>
+                    <div class="gold-reward">
+                        <span class="gold-icon">💰</span>
+                        <span class="gold-amount" id="goldReward">+100</span>
+                        <div class="reward-label">Gold</div>
+                    </div>
+                </div>
+
+                <!-- OK Button -->
+                <button id="endGameOK" class="end-game-ok">OK</button>
+            </div>
         </div>
     </div>
 

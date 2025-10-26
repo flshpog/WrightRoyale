@@ -4,7 +4,9 @@
 const CONFIG = {
     gridWidth: 16,
     gridHeight: 24,
-    tileSize: 40,
+    tileSizeX: 25, // Horizontal tile size (narrower)
+    tileSizeY: 40, // Vertical tile size (same)
+    tileSize: 40, // Default for backwards compatibility
     elixirMax: 10,
     elixirStart: 7,
     elixirRegenRate: 2600, // milliseconds per elixir
@@ -48,6 +50,8 @@ class WrightRoyale {
         this.lastElixirRegen = 0;
         this.matchTime = CONFIG.matchDuration;
         this.matchStartTime = 0;
+        this.playerCrowns = 0;
+        this.enemyCrowns = 0;
 
         // Map zones and bridges
         this.setupMapZones();
@@ -56,11 +60,14 @@ class WrightRoyale {
         // Bridge is at y=12 (center of 24-tile grid)
         // Princess towers should be 7 tiles from bridge
         const bridgeY = CONFIG.gridHeight / 2; // 12
-        const centerX = CONFIG.gridWidth / 2; // 8
+        const centerX = CONFIG.gridWidth / 2; // 5
 
         // Player towers (bottom)
         const playerPrincessTop = bridgeY + 7; // 7 tiles below bridge = y:19
         const playerKingTop = bridgeY + 8; // Behind princess towers = y:20
+
+        const princessTowerCard = CARDS.princess_tower;
+        const kingTowerCard = CARDS.king_tower;
 
         this.playerTowers = {
             king: {
@@ -70,9 +77,16 @@ class WrightRoyale {
                 top: playerKingTop,
                 width: 4,
                 height: 4,
-                health: 4400,
-                maxHealth: 4400,
-                active: true
+                health: kingTowerCard.health,
+                maxHealth: kingTowerCard.health,
+                active: true,
+                activated: false, // King tower starts inactive
+                activatedTime: null,
+                isPlayerTower: true,
+                cardData: kingTowerCard,
+                target: null,
+                lastAttackTime: 0,
+                crownAwarded: false
             },
             left: {
                 x: 3, // Left side
@@ -81,9 +95,14 @@ class WrightRoyale {
                 top: playerPrincessTop,
                 width: 3,
                 height: 3,
-                health: 2500,
-                maxHealth: 2500,
-                active: true
+                health: princessTowerCard.health,
+                maxHealth: princessTowerCard.health,
+                active: true,
+                isPlayerTower: true,
+                cardData: princessTowerCard,
+                target: null,
+                lastAttackTime: 0,
+                crownAwarded: false
             },
             right: {
                 x: CONFIG.gridWidth - 3, // Right side (mirror of left)
@@ -92,9 +111,14 @@ class WrightRoyale {
                 top: playerPrincessTop,
                 width: 3,
                 height: 3,
-                health: 2500,
-                maxHealth: 2500,
-                active: true
+                health: princessTowerCard.health,
+                maxHealth: princessTowerCard.health,
+                active: true,
+                isPlayerTower: true,
+                cardData: princessTowerCard,
+                target: null,
+                lastAttackTime: 0,
+                crownAwarded: false
             }
         };
 
@@ -110,9 +134,16 @@ class WrightRoyale {
                 top: enemyKingTop,
                 width: 4,
                 height: 4,
-                health: 4400,
-                maxHealth: 4400,
-                active: true
+                health: kingTowerCard.health,
+                maxHealth: kingTowerCard.health,
+                active: true,
+                activated: false, // King tower starts inactive
+                activatedTime: null,
+                isPlayerTower: false,
+                cardData: kingTowerCard,
+                target: null,
+                lastAttackTime: 0,
+                crownAwarded: false
             },
             left: {
                 x: 3, // Left side
@@ -121,9 +152,14 @@ class WrightRoyale {
                 top: enemyPrincessTop,
                 width: 3,
                 height: 3,
-                health: 2500,
-                maxHealth: 2500,
-                active: true
+                health: princessTowerCard.health,
+                maxHealth: princessTowerCard.health,
+                active: true,
+                isPlayerTower: false,
+                cardData: princessTowerCard,
+                target: null,
+                lastAttackTime: 0,
+                crownAwarded: false
             },
             right: {
                 x: CONFIG.gridWidth - 3, // Right side (mirror of left)
@@ -132,9 +168,14 @@ class WrightRoyale {
                 top: enemyPrincessTop,
                 width: 3,
                 height: 3,
-                health: 2500,
-                maxHealth: 2500,
-                active: true
+                health: princessTowerCard.health,
+                maxHealth: princessTowerCard.health,
+                active: true,
+                isPlayerTower: false,
+                cardData: princessTowerCard,
+                target: null,
+                lastAttackTime: 0,
+                crownAwarded: false
             }
         };
 
@@ -214,6 +255,11 @@ class WrightRoyale {
             this.exitGame();
         });
 
+        // End game OK button
+        document.getElementById('endGameOK').addEventListener('click', () => {
+            this.closeEndGameOverlay();
+        });
+
         // Canvas interactions
         this.canvas.addEventListener('click', (e) => {
             if (this.state === GameState.PLAYING) {
@@ -259,9 +305,16 @@ class WrightRoyale {
     }
 
     switchTab(tabId) {
+        // Define tab order for directional animation
+        const tabOrder = ['shopTab', 'inventoryTab', 'playTab', 'clansTab', 'constructionTab'];
+        const oldIndex = tabOrder.indexOf(this.currentTab);
+        const newIndex = tabOrder.indexOf(tabId);
+
         // Hide all tabs
         document.querySelectorAll('.tab-content').forEach(tab => {
             tab.classList.add('hidden');
+            // Remove animation classes
+            tab.classList.remove('slide-left', 'slide-right');
         });
 
         // Remove active from all nav tabs
@@ -269,8 +322,18 @@ class WrightRoyale {
             tab.classList.remove('active');
         });
 
-        // Show selected tab
-        document.getElementById(tabId).classList.remove('hidden');
+        // Show selected tab with directional animation
+        const selectedTab = document.getElementById(tabId);
+        selectedTab.classList.remove('hidden');
+
+        // Add appropriate slide animation based on direction
+        if (oldIndex !== -1 && newIndex !== -1) {
+            if (newIndex > oldIndex) {
+                selectedTab.classList.add('slide-right');
+            } else {
+                selectedTab.classList.add('slide-left');
+            }
+        }
 
         // Set active nav tab
         const activeNavTab = document.querySelector(`[data-tab="${tabId}"]`);
@@ -299,6 +362,8 @@ class WrightRoyale {
         this.matchTime = CONFIG.matchDuration;
         this.matchStartTime = Date.now();
         this.lastElixirRegen = Date.now();
+        this.playerCrowns = 0;
+        this.enemyCrowns = 0;
         this.troops = [];
         this.projectiles = [];
         this.spellEffects = [];
@@ -328,11 +393,25 @@ class WrightRoyale {
         Object.values(this.playerTowers).forEach(tower => {
             tower.health = tower.maxHealth;
             tower.active = true;
+            tower.target = null;
+            tower.lastAttackTime = 0;
+            tower.crownAwarded = false;
+            if (tower.hasOwnProperty('activated')) {
+                tower.activated = false;
+                tower.activatedTime = null;
+            }
         });
 
         Object.values(this.enemyTowers).forEach(tower => {
             tower.health = tower.maxHealth;
             tower.active = true;
+            tower.target = null;
+            tower.lastAttackTime = 0;
+            tower.crownAwarded = false;
+            if (tower.hasOwnProperty('activated')) {
+                tower.activated = false;
+                tower.activatedTime = null;
+            }
         });
 
         this.updateTowerHealthUI();
@@ -541,6 +620,7 @@ class WrightRoyale {
         this.updateTroops(deltaTime);
         this.updateProjectiles(deltaTime);
         this.updateSpellEffects();
+        this.updateTowers();
 
         // Simple enemy AI - spawn troops occasionally
         if (Math.random() < 0.001) {
@@ -599,6 +679,153 @@ class WrightRoyale {
         this.spellEffects = this.spellEffects.filter(effect => effect.active);
     }
 
+    updateTowers() {
+        // Update player towers
+        Object.values(this.playerTowers).forEach(tower => {
+            if (tower.active && tower.cardData) {
+                // King tower only shoots if activated
+                if (tower.cardData.id === 'king_tower' && !tower.activated) {
+                    return;
+                }
+                this.updateTowerTargeting(tower);
+            }
+        });
+
+        // Update enemy towers
+        Object.values(this.enemyTowers).forEach(tower => {
+            if (tower.active && tower.cardData) {
+                // King tower only shoots if activated
+                if (tower.cardData.id === 'king_tower' && !tower.activated) {
+                    return;
+                }
+                this.updateTowerTargeting(tower);
+            }
+        });
+    }
+
+    updateTowerTargeting(tower) {
+        const cardData = tower.cardData;
+        const now = Date.now();
+
+        // Find enemy troops within range (player towers shoot enemy troops, enemy towers shoot player troops)
+        const enemyTroops = this.troops.filter(troop =>
+            troop.isPlayerTroop !== tower.isPlayerTower &&
+            troop.health > 0 &&
+            troop.active
+        );
+
+        // Filter by range
+        const targetsInRange = enemyTroops.filter(troop => {
+            const dx = troop.x - tower.x;
+            const dy = troop.y - tower.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            return dist <= cardData.range;
+        });
+
+        // Find closest target
+        if (targetsInRange.length > 0) {
+            let closest = null;
+            let closestDist = Infinity;
+
+            targetsInRange.forEach(troop => {
+                const dx = troop.x - tower.x;
+                const dy = troop.y - tower.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < closestDist) {
+                    closestDist = dist;
+                    closest = troop;
+                }
+            });
+
+            tower.target = closest;
+
+            // Try to attack
+            const hitSpeed = cardData.hitSpeed * 1000; // Convert to ms
+            if (now - tower.lastAttackTime >= hitSpeed) {
+                this.towerAttack(tower);
+                tower.lastAttackTime = now;
+            }
+        } else {
+            tower.target = null;
+        }
+    }
+
+    towerAttack(tower) {
+        if (!tower.target || tower.target.health <= 0) return;
+
+        const cardData = tower.cardData;
+
+        // Create projectile
+        const projectile = new Projectile(
+            tower.x,
+            tower.y,
+            tower.target,
+            cardData.damage,
+            cardData.projectileSpeed / 1000,
+            cardData.color,
+            this
+        );
+        this.projectiles.push(projectile);
+    }
+
+    onTowerDamaged(tower, isPlayerTower) {
+        // Activate king tower if it's damaged
+        if (tower.cardData && tower.cardData.id === 'king_tower' && !tower.activated) {
+            tower.activated = true;
+            tower.activatedTime = Date.now();
+            console.log(`${isPlayerTower ? 'Player' : 'Enemy'} King Tower activated!`);
+        }
+    }
+
+    onPrincessTowerDestroyed(tower) {
+        // Check if this tower has already awarded its crown
+        if (tower.crownAwarded) {
+            return;
+        }
+
+        // Mark this tower as having awarded its crown
+        tower.crownAwarded = true;
+
+        // Award 1 crown to the attacker
+        if (tower.isPlayerTower) {
+            this.enemyCrowns += 1;
+            console.log(`Enemy destroyed a Princess Tower! Enemy crowns: ${this.enemyCrowns}`);
+        } else {
+            this.playerCrowns += 1;
+            console.log(`Player destroyed a Princess Tower! Player crowns: ${this.playerCrowns}`);
+        }
+
+        // Activate king tower when princess tower is destroyed
+        const kingTower = tower.isPlayerTower ? this.playerTowers.king : this.enemyTowers.king;
+        if (!kingTower.activated) {
+            kingTower.activated = true;
+            kingTower.activatedTime = Date.now();
+            console.log(`${tower.isPlayerTower ? 'Player' : 'Enemy'} King Tower activated (Princess Tower destroyed)!`);
+        }
+    }
+
+    onKingTowerDestroyed(tower) {
+        // Check if this tower has already awarded its crown
+        if (tower.crownAwarded) {
+            return;
+        }
+
+        // Mark this tower as having awarded its crown
+        tower.crownAwarded = true;
+
+        // Award 3 crowns to the attacker
+        if (tower.isPlayerTower) {
+            this.enemyCrowns += 3;
+            console.log(`Enemy destroyed the King Tower! Enemy crowns: ${this.enemyCrowns}`);
+        } else {
+            this.playerCrowns += 3;
+            console.log(`Player destroyed the King Tower! Player crowns: ${this.playerCrowns}`);
+        }
+
+        // End the game immediately when King Tower is destroyed
+        this.endMatch();
+    }
+
     render() {
         // Clear canvas
         this.ctx.fillStyle = '#3d5a45';
@@ -641,16 +868,16 @@ class WrightRoyale {
         // Vertical lines
         for (let x = 0; x <= CONFIG.gridWidth; x++) {
             this.ctx.beginPath();
-            this.ctx.moveTo(x * CONFIG.tileSize, 0);
-            this.ctx.lineTo(x * CONFIG.tileSize, this.canvas.height);
+            this.ctx.moveTo(x * CONFIG.tileSizeX, 0);
+            this.ctx.lineTo(x * CONFIG.tileSizeX, this.canvas.height);
             this.ctx.stroke();
         }
 
         // Horizontal lines
         for (let y = 0; y <= CONFIG.gridHeight; y++) {
             this.ctx.beginPath();
-            this.ctx.moveTo(0, y * CONFIG.tileSize);
-            this.ctx.lineTo(this.canvas.width, y * CONFIG.tileSize);
+            this.ctx.moveTo(0, y * CONFIG.tileSizeY);
+            this.ctx.lineTo(this.canvas.width, y * CONFIG.tileSizeY);
             this.ctx.stroke();
         }
 
@@ -658,8 +885,8 @@ class WrightRoyale {
         this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
         this.ctx.lineWidth = 2;
         this.ctx.beginPath();
-        this.ctx.moveTo(0, CONFIG.gridHeight / 2 * CONFIG.tileSize);
-        this.ctx.lineTo(this.canvas.width, CONFIG.gridHeight / 2 * CONFIG.tileSize);
+        this.ctx.moveTo(0, CONFIG.gridHeight / 2 * CONFIG.tileSizeY);
+        this.ctx.lineTo(this.canvas.width, CONFIG.gridHeight / 2 * CONFIG.tileSizeY);
         this.ctx.stroke();
     }
 
@@ -667,19 +894,19 @@ class WrightRoyale {
         this.bridges.forEach(bridge => {
             this.ctx.fillStyle = '#8b7355';
             this.ctx.fillRect(
-                bridge.x * CONFIG.tileSize,
-                bridge.y * CONFIG.tileSize,
-                bridge.width * CONFIG.tileSize,
-                bridge.height * CONFIG.tileSize
+                bridge.x * CONFIG.tileSizeX,
+                bridge.y * CONFIG.tileSizeY,
+                bridge.width * CONFIG.tileSizeX,
+                bridge.height * CONFIG.tileSizeY
             );
 
             this.ctx.strokeStyle = '#654321';
             this.ctx.lineWidth = 3;
             this.ctx.strokeRect(
-                bridge.x * CONFIG.tileSize,
-                bridge.y * CONFIG.tileSize,
-                bridge.width * CONFIG.tileSize,
-                bridge.height * CONFIG.tileSize
+                bridge.x * CONFIG.tileSizeX,
+                bridge.y * CONFIG.tileSizeY,
+                bridge.width * CONFIG.tileSizeX,
+                bridge.height * CONFIG.tileSizeY
             );
         });
     }
@@ -693,8 +920,8 @@ class WrightRoyale {
         // Draw full river (bridges will be drawn on top)
         this.ctx.fillRect(
             0,
-            (riverY - 0.5) * CONFIG.tileSize,
-            CONFIG.gridWidth * CONFIG.tileSize,
+            (riverY - 0.5) * CONFIG.tileSizeY,
+            CONFIG.gridWidth * CONFIG.tileSizeX,
             CONFIG.tileSize
         );
 
@@ -709,17 +936,17 @@ class WrightRoyale {
         // Left corner - 5 tiles from left, bottom 3 rows
         this.ctx.fillRect(
             0,
-            (CONFIG.gridHeight - 3) * CONFIG.tileSize,
-            5 * CONFIG.tileSize,
-            3 * CONFIG.tileSize
+            (CONFIG.gridHeight - 3) * CONFIG.tileSizeY,
+            5 * CONFIG.tileSizeX,
+            3 * CONFIG.tileSizeY
         );
 
         // Right corner - 5 tiles from right, bottom 3 rows
         this.ctx.fillRect(
-            (CONFIG.gridWidth - 5) * CONFIG.tileSize,
-            (CONFIG.gridHeight - 3) * CONFIG.tileSize,
-            5 * CONFIG.tileSize,
-            3 * CONFIG.tileSize
+            (CONFIG.gridWidth - 5) * CONFIG.tileSizeX,
+            (CONFIG.gridHeight - 3) * CONFIG.tileSizeY,
+            5 * CONFIG.tileSizeX,
+            3 * CONFIG.tileSizeY
         );
 
         // Enemy side (top) - mirror
@@ -727,16 +954,16 @@ class WrightRoyale {
         this.ctx.fillRect(
             0,
             0,
-            5 * CONFIG.tileSize,
-            3 * CONFIG.tileSize
+            5 * CONFIG.tileSizeX,
+            3 * CONFIG.tileSizeY
         );
 
         // Right corner
         this.ctx.fillRect(
-            (CONFIG.gridWidth - 5) * CONFIG.tileSize,
+            (CONFIG.gridWidth - 5) * CONFIG.tileSizeX,
             0,
-            5 * CONFIG.tileSize,
-            3 * CONFIG.tileSize
+            5 * CONFIG.tileSizeX,
+            3 * CONFIG.tileSizeY
         );
     }
 
@@ -755,10 +982,10 @@ class WrightRoyale {
     drawTower(tower, color, isKing) {
         if (!tower.active) return;
 
-        const width = tower.width * CONFIG.tileSize;
-        const height = tower.height * CONFIG.tileSize;
-        const x = tower.left * CONFIG.tileSize;
-        const y = tower.top * CONFIG.tileSize;
+        const width = tower.width * CONFIG.tileSizeX;
+        const height = tower.height * CONFIG.tileSizeY;
+        const x = tower.left * CONFIG.tileSizeX;
+        const y = tower.top * CONFIG.tileSizeY;
 
         // Tower body (full hitbox)
         this.ctx.fillStyle = color;
@@ -769,27 +996,88 @@ class WrightRoyale {
         this.ctx.lineWidth = 3;
         this.ctx.strokeRect(x, y, width, height);
 
-        // Health bar
-        const barWidth = width;
-        const barHeight = 8;
-        const barX = x;
-        const barY = y - 12;
+        // Determine if we should show health bar
+        const showHealthBar = !isKing || (isKing && tower.activated);
 
-        // Background
-        this.ctx.fillStyle = '#1a1f1a';
-        this.ctx.fillRect(barX, barY, barWidth, barHeight);
+        if (showHealthBar) {
+            const barWidth = width;
+            const barHeight = 10;
+            const barX = x;
+            const barY = y - 16;
 
-        // Health
-        const healthPercent = tower.health / tower.maxHealth;
-        this.ctx.fillStyle = healthPercent > 0.5 ? '#4ecdc4' : (healthPercent > 0.25 ? '#ffd700' : '#ff6b6b');
-        this.ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
+            // Animation for King Tower activation
+            let scale = 1;
+            let alpha = 1;
+            if (isKing && tower.activatedTime) {
+                const timeSinceActivation = Date.now() - tower.activatedTime;
+                const animDuration = 800; // 800ms animation
+                if (timeSinceActivation < animDuration) {
+                    const progress = timeSinceActivation / animDuration;
+                    // Ease out elastic effect
+                    scale = 1 + (1 - progress) * 0.5;
+                    alpha = progress;
+                }
+            }
+
+            this.ctx.save();
+            this.ctx.globalAlpha = alpha;
+
+            // Background
+            this.ctx.fillStyle = '#1a1f1a';
+            this.ctx.fillRect(barX, barY, barWidth, barHeight);
+
+            // Health
+            const healthPercent = tower.health / tower.maxHealth;
+            this.ctx.fillStyle = healthPercent > 0.5 ? '#4ecdc4' : (healthPercent > 0.25 ? '#ffd700' : '#ff6b6b');
+            this.ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
+
+            // Health text (HP value)
+            if (scale > 1 || isKing) {
+                this.ctx.save();
+                const centerX = barX + barWidth / 2;
+                const centerY = barY + barHeight / 2;
+                this.ctx.translate(centerX, centerY);
+                this.ctx.scale(scale, scale);
+                this.ctx.translate(-centerX, -centerY);
+
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.font = 'bold 10px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText(Math.ceil(tower.health), centerX, centerY);
+
+                this.ctx.restore();
+            }
+
+            this.ctx.restore();
+
+            // "ACTIVATED!" text for King Tower
+            if (isKing && tower.activatedTime) {
+                const timeSinceActivation = Date.now() - tower.activatedTime;
+                if (timeSinceActivation < 2000) { // Show for 2 seconds
+                    const textAlpha = 1 - (timeSinceActivation / 2000);
+                    const textY = y - 30 - (timeSinceActivation / 20); // Float up
+
+                    this.ctx.save();
+                    this.ctx.globalAlpha = textAlpha;
+                    this.ctx.fillStyle = '#ff4444';
+                    this.ctx.font = 'bold 14px Arial';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.strokeStyle = '#000000';
+                    this.ctx.lineWidth = 3;
+                    this.ctx.strokeText('ACTIVATED!', x + width / 2, textY);
+                    this.ctx.fillText('ACTIVATED!', x + width / 2, textY);
+                    this.ctx.restore();
+                }
+            }
+        }
     }
 
     drawPlacementPreview() {
         const cardId = this.hand[this.selectedCardIndex];
         const cardData = getCard(cardId);
-        const x = this.placementPreview.x * CONFIG.tileSize;
-        const y = this.placementPreview.y * CONFIG.tileSize;
+        const x = this.placementPreview.x * CONFIG.tileSizeX;
+        const y = this.placementPreview.y * CONFIG.tileSizeY;
 
         // Check if valid placement
         const isValid = cardData.type === CardType.SPELL || this.canPlaceTroopAt(this.placementPreview.x, this.placementPreview.y);
@@ -801,7 +1089,7 @@ class WrightRoyale {
         if (cardData.type === CardType.SPELL) {
             // Draw radius circle for spells
             this.ctx.beginPath();
-            this.ctx.arc(x, y, cardData.radius * CONFIG.tileSize, 0, Math.PI * 2);
+            this.ctx.arc(x, y, cardData.radius * ((CONFIG.tileSizeX + CONFIG.tileSizeY) / 2), 0, Math.PI * 2);
             this.ctx.fill();
             this.ctx.stroke();
         } else {
@@ -849,25 +1137,52 @@ class WrightRoyale {
     endMatch() {
         this.state = GameState.ENDED;
 
-        // Count active towers
-        const playerTowerCount = Object.values(this.playerTowers).filter(t => t.active).length;
-        const enemyTowerCount = Object.values(this.enemyTowers).filter(t => t.active).length;
-
         let result;
-        if (playerTowerCount > enemyTowerCount) {
+        let trophies = 0;
+        let gold = 0;
+
+        if (this.playerCrowns > this.enemyCrowns) {
             result = 'VICTORY!';
-            PlayerData.trophies += 30;
-            PlayerData.gold += 100;
-        } else if (enemyTowerCount > playerTowerCount) {
+            trophies = 30;
+            gold = 100;
+            PlayerData.trophies += trophies;
+            PlayerData.gold += gold;
+        } else if (this.enemyCrowns > this.playerCrowns) {
             result = 'DEFEAT';
+            trophies = -20;
             PlayerData.trophies = Math.max(0, PlayerData.trophies - 20);
         } else {
             result = 'DRAW';
-            PlayerData.gold += 20;
+            gold = 20;
+            PlayerData.gold += gold;
         }
 
-        alert(`Match ended: ${result}\nPlayer Towers: ${playerTowerCount}\nEnemy Towers: ${enemyTowerCount}`);
+        // Show end game overlay
+        this.showEndGameOverlay(result, trophies, gold);
         this.updatePlayerUI();
+    }
+
+    showEndGameOverlay(result, trophies, gold) {
+        const overlay = document.getElementById('endGameOverlay');
+
+        // Update crown counts
+        document.getElementById('playerCrownCount').textContent = this.playerCrowns;
+        document.getElementById('enemyCrownCount').textContent = this.enemyCrowns;
+
+        // Update result text
+        document.getElementById('resultText').textContent = result;
+
+        // Update rewards
+        document.getElementById('trophyReward').textContent = trophies >= 0 ? `+${trophies}` : `${trophies}`;
+        document.getElementById('goldReward').textContent = gold >= 0 ? `+${gold}` : `${gold}`;
+
+        // Show overlay
+        overlay.classList.remove('hidden');
+    }
+
+    closeEndGameOverlay() {
+        const overlay = document.getElementById('endGameOverlay');
+        overlay.classList.add('hidden');
         this.exitGame();
     }
 }
